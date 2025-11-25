@@ -1,0 +1,50 @@
+========================================
+  SOLUCIÓN A ERRORES COMUNES
+========================================
+
+ERROR: "ERR_CONNECTION_REFUSED"
+CAUSA: El servidor no está corriendo
+
+SOLUCIÓN:
+1. Haz doble clic en: INICIAR.bat
+2. Espera a ver: "Local: http://localhost:5173/"
+3. Abre: http://localhost:5173
+
+========================================
+
+ERROR: "Puerto 5173 en uso"
+CAUSA: Hay otro proceso usando el puerto
+
+SOLUCIÓN:
+1. Abre Administrador de Tareas (Ctrl+Shift+Esc)
+2. Busca "node.exe" y ciérralo
+3. Vuelve a ejecutar INICIAR.bat
+
+========================================
+
+ERROR: "npm no se reconoce"
+CAUSA: Node.js no está instalado o no está en el PATH
+
+SOLUCIÓN:
+1. Instala Node.js desde: https://nodejs.org
+2. Reinicia tu computadora
+3. Vuelve a ejecutar INICIAR.bat
+
+========================================
+
+ERROR: "No se puede cargar npm.ps1"
+CAUSA: Problema con PowerShell
+
+SOLUCIÓN:
+- Usa el archivo INICIAR.bat (no ejecutes npm directamente)
+- O cambia a CMD en lugar de PowerShell
+
+========================================
+
+SI NADA FUNCIONA:
+1. Cierra TODAS las ventanas de terminal
+2. Reinicia tu computadora
+3. Ejecuta INICIAR.bat de nuevo
+
+========================================
+

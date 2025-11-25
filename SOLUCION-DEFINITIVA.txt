@@ -1,0 +1,69 @@
+========================================
+  SOLUCIÓN DEFINITIVA AL PROBLEMA
+========================================
+
+PROBLEMA IDENTIFICADO:
+El servidor está corriendo pero el navegador no puede conectarse.
+
+POSIBLES CAUSAS:
+1. Windows Firewall bloqueando la conexión
+2. Problema con IPv4/IPv6
+3. El servidor no está realmente iniciado correctamente
+
+========================================
+  SOLUCIÓN PASO A PASO:
+========================================
+
+OPCIÓN 1: Usar el script INICIAR.bat
+-------------------------------------
+1. Haz doble clic en: INICIAR.bat
+2. Espera a ver: "Local: http://localhost:5173/"
+3. Abre: http://127.0.0.1:5173 (prueba esta URL también)
+4. Si no funciona, prueba: http://localhost:5173
+
+OPCIÓN 2: Verificar Firewall de Windows
+----------------------------------------
+1. Abre "Configuración de Windows"
+2. Ve a "Seguridad de Windows" > "Firewall de Windows"
+3. Haz clic en "Permitir una aplicación a través del firewall"
+4. Busca "Node.js" y asegúrate de que esté marcado para "Red privada"
+5. Si no está, haz clic en "Cambiar configuración" > "Permitir otra aplicación"
+6. Agrega Node.js
+
+OPCIÓN 3: Ejecutar desde CMD manualmente
+-----------------------------------------
+1. Abre CMD (no PowerShell)
+2. Navega a la carpeta del proyecto:
+   cd C:\Users\maria\Desktop\todavianosecomosellama\project-bolt-sb1-fqlqsuxu\project
+3. Ejecuta: npm run dev
+4. Espera a ver el mensaje del servidor
+5. Abre: http://127.0.0.1:5173
+
+OPCIÓN 4: Usar otro puerto
+---------------------------
+Si el puerto 5173 está bloqueado, podemos cambiar a otro puerto.
+Avísame y lo cambio.
+
+========================================
+  VERIFICAR QUE FUNCIONA:
+========================================
+
+1. Ejecuta: TEST-SERVIDOR.bat
+2. Verifica que el puerto 5173 esté en uso
+3. Si está en uso pero no puedes conectarte:
+   → Es problema de firewall
+   → Sigue la OPCIÓN 2
+
+========================================
+  URLs A PROBAR:
+========================================
+
+Prueba estas URLs en tu navegador:
+- http://localhost:5173
+- http://127.0.0.1:5173
+- http://[::1]:5173 (IPv6)
+
+Una de estas debería funcionar.
+
+========================================
+

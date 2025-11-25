@@ -1,0 +1,38 @@
+========================================
+  INSTRUCCIONES PARA INICIAR EL SERVIDOR
+========================================
+
+PROBLEMA COMÚN: "ERR_CONNECTION_REFUSED" o "No se puede acceder a este sitio web"
+
+SOLUCIÓN SIMPLE:
+1. Haz doble clic en el archivo: INICIAR.bat
+2. Espera a ver el mensaje: "Local: http://localhost:5173/"
+3. Abre tu navegador en: http://localhost:5173
+
+========================================
+  SI EL SERVIDOR NO INICIA:
+========================================
+
+1. Cierra TODAS las ventanas de terminal/CMD/PowerShell
+2. Abre el Administrador de Tareas (Ctrl+Shift+Esc)
+3. Busca procesos "node.exe" y ciérralos
+4. Vuelve a hacer doble clic en INICIAR.bat
+
+========================================
+  ARCHIVOS IMPORTANTES:
+========================================
+
+- INICIAR.bat          → Usa ESTE para iniciar el servidor
+- INICIAR-SERVIDOR.bat → Versión alternativa
+- check-setup.bat      → Verifica que Node.js esté instalado
+
+========================================
+  NOTAS:
+========================================
+
+- El servidor debe estar corriendo para ver la web
+- NO cierres la ventana negra (CMD) mientras uses la web
+- Si cambias algo en el código, la web se actualiza automáticamente
+- Para detener el servidor: Presiona Ctrl+C en la ventana CMD
+
+========================================
