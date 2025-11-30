@@ -1,0 +1,125 @@
+.entramado-logo {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.75rem;
+  font-weight: 300;
+  color: #1f2937;
+  letter-spacing: 0.05em;
+  position: relative;
+  cursor: default;
+  user-select: none;
+  line-height: 1;
+}
+
+@media (min-width: 640px) {
+  .entramado-logo {
+    font-size: 2.25rem;
+  }
+}
+
+.entramado-letter {
+  display: inline-block;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0 0.08em;
+  line-height: 1.2;
+}
+
+.entramado-letter:hover {
+  transform: translateY(var(--hover-y, 0px)) scale(1.1) !important;
+  color: #6366f1;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efecto de entrelazado visual con línea que conecta */
+.entramado-letter::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), transparent);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: -1;
+}
+
+.entramado-letter:hover::before {
+  width: 120%;
+  opacity: 1;
+}
+
+/* Línea de conexión entre letras en hover */
+.entramado-logo:hover .entramado-letter::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -0.1em;
+  width: 0.2em;
+  height: 1px;
+  background: rgba(99, 102, 241, 0.2);
+  transform: translateY(-50%);
+  z-index: 0;
+}
+
+/* Colores diferentes para vocales y consonantes */
+.entramado-letter.vowel {
+  color: #6366f1;
+}
+
+.entramado-letter.consonant {
+  color: #1f2937;
+}
+
+.entramado-logo:hover .entramado-letter.vowel {
+  color: #818cf8;
+}
+
+.entramado-logo:hover .entramado-letter.consonant {
+  color: #4b5563;
+}
+
+/* Animación sutil al cargar */
+@keyframes fadeInLetter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entramado-letter {
+  animation: fadeInLetter 0.6s ease-out forwards;
+  animation-delay: calc(var(--letter-index) * 0.05s);
+  opacity: 0;
+}
+
+/* Efecto de profundidad con sombras sutiles */
+.entramado-letter[style*="z-index: 5"],
+.entramado-letter[style*="z-index: 4"],
+.entramado-letter[style*="z-index: 3"] {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.entramado-letter[style*="z-index: 2"],
+.entramado-letter[style*="z-index: 1"] {
+  text-shadow: 0 -1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Efecto de entrelazado más pronunciado en hover */
+.entramado-logo:hover .entramado-letter[style*="z-index: 5"],
+.entramado-logo:hover .entramado-letter[style*="z-index: 4"],
+.entramado-logo:hover .entramado-letter[style*="z-index: 3"] {
+  transform: translateY(calc(var(--hover-y, -2px) - 2px)) !important;
+}
+
+.entramado-logo:hover .entramado-letter[style*="z-index: 2"],
+.entramado-logo:hover .entramado-letter[style*="z-index: 1"] {
+  transform: translateY(calc(var(--hover-y, 2px) + 2px)) !important;
+}
+

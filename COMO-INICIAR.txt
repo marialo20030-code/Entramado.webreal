@@ -1,0 +1,49 @@
+========================================
+  CÓMO INICIAR EL SERVIDOR
+========================================
+
+PASO 1: Haz doble clic en el archivo:
+        → INICIAR.bat
+
+PASO 2: Espera a ver este mensaje en la ventana negra:
+        "Local:   http://localhost:5173/"
+
+PASO 3: Abre tu navegador (Chrome, Firefox, etc.)
+
+PASO 4: Escribe en la barra de direcciones:
+        http://localhost:5173
+
+PASO 5: Presiona Enter
+
+========================================
+  IMPORTANTE
+========================================
+
+✓ NO CIERRES la ventana negra mientras uses la web
+✓ Si cierras la ventana, el servidor se detiene
+✓ Para detener el servidor: Presiona Ctrl+C en la ventana
+
+========================================
+  SI NO FUNCIONA
+========================================
+
+1. Cierra TODAS las ventanas de terminal/CMD
+2. Abre Administrador de Tareas (Ctrl+Shift+Esc)
+3. Busca "node.exe" y ciérralo
+4. Vuelve a ejecutar INICIAR.bat
+
+========================================
+  VERIFICAR QUE FUNCIONA
+========================================
+
+Si el servidor está corriendo correctamente, verás:
+- En la ventana CMD: "Local: http://localhost:5173/"
+- En el navegador: La página web se carga correctamente
+
+Si ves "ERR_CONNECTION_REFUSED":
+- El servidor NO está corriendo
+- Ejecuta INICIAR.bat de nuevo
+- Espera a ver el mensaje "Local: http://localhost:5173/"
+
+========================================
+
