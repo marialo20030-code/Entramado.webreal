@@ -422,34 +422,34 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                 }}
               >
                 {post.description && (
-                  <div className="relative bg-[#fefcf8] rounded-lg shadow-lg overflow-hidden" style={{ 
-                    boxShadow: '0 0 0 1px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.5) inset',
+                  <div className="relative bg-[#fefefe]" style={{ 
                     minHeight: aportesExpanded ? '300px' : '400px'
                   }}>
                     {/* Título dentro de la página de texto */}
                     <div className="px-16 pt-8 pb-4">
                       <h2 className="text-4xl font-light text-gray-900 mb-6 leading-tight">{post.title}</h2>
                     </div>
-                    {/* Fondo con líneas rayadas */}
+                    
+                    {/* Líneas horizontales del cuaderno - Igual que en creación */}
                     {(() => {
                       const fontSizeNum = 16; // Tamaño de fuente base
                       const lineHeightNum = 1.8;
                       const lineHeight = fontSizeNum * lineHeightNum; // 28.8px
-                      const paddingLeft = 64; // px-16 = 64px
-                      const paddingTop = 32; // py-8 = 32px
-                      // El offset vertical debe dejar espacio en blanco al inicio
-                      // Agregamos una línea completa de altura para que haya espacio antes de la primera línea rayada
-                      const verticalOffset = paddingTop + lineHeight; // Espacio en blanco antes de la primera línea
                       
                       return (
                         <div 
                           className="absolute inset-0 pointer-events-none"
                           style={{
-                            backgroundImage: `repeating-linear-gradient(to bottom, transparent 0px, transparent ${lineHeight - 1}px, #d1d5db ${lineHeight - 1}px, #d1d5db ${lineHeight}px)`,
-                            backgroundPosition: `${paddingLeft}px ${verticalOffset}px`,
-                            backgroundSize: `calc(100% - ${paddingLeft * 2}px) ${lineHeight}px`,
+                            backgroundImage: `repeating-linear-gradient(
+                              to bottom,
+                              transparent 0px,
+                              transparent ${lineHeight - 1}px,
+                              #d1d5db ${lineHeight - 1}px,
+                              #d1d5db ${lineHeight}px
+                            )`,
+                            backgroundPosition: '16px 32px',
+                            backgroundSize: `calc(100% - 32px) ${lineHeight}px`,
                             backgroundRepeat: 'repeat-y',
-                            opacity: 0.35
                           }}
                         />
                       );
@@ -459,7 +459,7 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                       className="text-gray-600 leading-relaxed prose prose-sm max-w-none relative z-10 px-16 pb-8 post-content"
                       dangerouslySetInnerHTML={{ __html: processedDescription || post.description }}
                       style={{
-                        fontFamily: '"Roboto", "Helvetica Neue", Arial, sans-serif',
+                        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                         fontSize: '16px',
                         lineHeight: '1.8',
                         backgroundColor: 'transparent',
