@@ -467,7 +467,7 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                     />
                     <style>{`
                       .post-content p {
-                        margin: 0;
+                        margin: 8px 0;
                         padding: 0;
                         line-height: 1.8;
                       }
@@ -478,8 +478,11 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                         margin-bottom: 0;
                       }
                       .post-content ul, .post-content ol {
-                        margin: 0.8em 0;
+                        margin: 12px 0;
                         padding-left: 2em;
+                      }
+                      .post-content li {
+                        margin: 4px 0;
                       }
                       .post-content strong {
                         font-weight: 600;
@@ -488,6 +491,59 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                         font-style: italic;
                       }
                       .post-content u {
+                        text-decoration: underline;
+                      }
+                      .post-content pre {
+                        background: #f4f4f4;
+                        padding: 12px;
+                        border-radius: 6px;
+                        overflow-x: auto;
+                        font-family: 'Courier New', monospace;
+                        font-size: 14px;
+                        line-height: 1.5;
+                        margin: 12px 0;
+                        white-space: pre-wrap;
+                        word-wrap: break-word;
+                      }
+                      .post-content code {
+                        background: #f4f4f4;
+                        padding: 2px 6px;
+                        border-radius: 3px;
+                        font-family: 'Courier New', monospace;
+                        font-size: 0.9em;
+                      }
+                      .post-content pre code {
+                        background: transparent;
+                        padding: 0;
+                        border-radius: 0;
+                      }
+                      .post-content blockquote {
+                        border-left: 4px solid #ddd;
+                        padding-left: 16px;
+                        margin: 12px 0;
+                        color: #666;
+                        font-style: italic;
+                      }
+                      .post-content h1 {
+                        font-size: 2em;
+                        font-weight: 600;
+                        margin: 24px 0 16px 0;
+                        line-height: 1.3;
+                      }
+                      .post-content h2 {
+                        font-size: 1.5em;
+                        font-weight: 600;
+                        margin: 20px 0 12px 0;
+                        line-height: 1.3;
+                      }
+                      .post-content h3 {
+                        font-size: 1.2em;
+                        font-weight: 600;
+                        margin: 16px 0 8px 0;
+                        line-height: 1.3;
+                      }
+                      .post-content a {
+                        color: #2563eb;
                         text-decoration: underline;
                       }
                     `}</style>

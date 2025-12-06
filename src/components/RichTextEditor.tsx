@@ -128,6 +128,272 @@ export function RichTextEditor({
     }
   }, [value]);
 
+  // Función para convertir markdown a HTML
+  const markdownToHTML = (text: string): string => {
+    if (!text || !text.trim()) return '';
+    
+    let html = text;
+    
+    // Escapar HTML existente primero (excepto si ya está en formato HTML)
+    const hasHTMLTags = /<[^>]+>/.test(html);
+    if (!hasHTMLTags) {
+      html = html
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+    
+    // Bloques de código (```lang code ```) - primero para evitar que se procesen otros elementos
+    html = html.replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
+      // No escapar de nuevo si ya tiene HTML
+      const codeContent = hasHTMLTags ? code : code
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>');
+      
+      return `<pre style="background: #f4f4f4; padding: 12px; border-radius: 6px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.5; margin: 12px 0;"><code>${codeContent.trim()}</code></pre>`;
+    });
+    
+    // Dividir en líneas para procesar
+    const lines = html.split('\n');
+    const result: string[] = [];
+    let inCodeBlock = false;
+    let inOrderedList = false;
+    let inUnorderedList = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+      
+      // Verificar si estamos dentro de un bloque de código
+      if (line.includes('<pre>')) inCodeBlock = true;
+      if (line.includes('</pre>')) {
+        inCodeBlock = false;
+        result.push(line);
+        continue;
+      }
+      if (inCodeBlock) {
+        result.push(line);
+        continue;
+      }
+      
+      // Blockquotes (> text)
+      if (/^&gt; (.+)$/.test(line) || /^> (.+)$/.test(line)) {
+        line = line.replace(/^(&gt;|>) (.+)$/, '<blockquote style="border-left: 4px solid #ddd; padding-left: 16px; margin: 12px 0; color: #666; font-style: italic;">$2</blockquote>');
+        result.push(line);
+        continue;
+      }
+      
+      // Títulos
+      if (/^### (.+)$/.test(line)) {
+        line = line.replace(/^### (.+)$/, '<h3 style="font-size: 1.2em; font-weight: 600; margin: 16px 0 8px 0;">$1</h3>');
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        result.push(line);
+        continue;
+      }
+      if (/^## (.+)$/.test(line)) {
+        line = line.replace(/^## (.+)$/, '<h2 style="font-size: 1.5em; font-weight: 600; margin: 20px 0 12px 0;">$1</h2>');
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        result.push(line);
+        continue;
+      }
+      if (/^# (.+)$/.test(line)) {
+        line = line.replace(/^# (.+)$/, '<h1 style="font-size: 2em; font-weight: 600; margin: 24px 0 16px 0;">$1</h1>');
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        result.push(line);
+        continue;
+      }
+      
+      // Listas ordenadas
+      if (/^\d+\. (.+)$/.test(line)) {
+        if (!inOrderedList) {
+          result.push('<ol style="margin: 12px 0; padding-left: 2em;">');
+          inOrderedList = true;
+        }
+        if (inUnorderedList) {
+          result.push('</ul>');
+          inUnorderedList = false;
+        }
+        line = line.replace(/^\d+\. (.+)$/, '<li>$1</li>');
+        result.push(line);
+        continue;
+      }
+      
+      // Listas no ordenadas
+      if (/^[-*] (.+)$/.test(line)) {
+        if (!inUnorderedList) {
+          result.push('<ul style="margin: 12px 0; padding-left: 2em; list-style-type: disc;">');
+          inUnorderedList = true;
+        }
+        if (inOrderedList) {
+          result.push('</ol>');
+          inOrderedList = false;
+        }
+        line = line.replace(/^[-*] (.+)$/, '<li>$1</li>');
+        result.push(line);
+        continue;
+      }
+      
+      // Cerrar listas si hay línea vacía o cambio de contexto
+      if (line.trim() === '') {
+        if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+        if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+        result.push(line);
+        continue;
+      }
+      
+      // Si llegamos aquí, es una línea normal
+      if (inOrderedList) { result.push('</ol>'); inOrderedList = false; }
+      if (inUnorderedList) { result.push('</ul>'); inUnorderedList = false; }
+      
+      result.push(line);
+    }
+    
+    // Cerrar listas abiertas
+    if (inOrderedList) result.push('</ol>');
+    if (inUnorderedList) result.push('</ul>');
+    
+    html = result.join('\n');
+    
+    // Código inline (`code`) - después de procesar bloques, pero no dentro de <pre>
+    html = html.replace(/`([^`\n<]+)`/g, (match, code) => {
+      // No procesar si está dentro de un pre
+      if (html.substring(0, html.indexOf(match)).includes('<pre')) {
+        return match;
+      }
+      return `<code style="background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 0.9em;">${code}</code>`;
+    });
+    
+    // Negritas (**text** o __text__) - primero procesar negritas antes que cursivas
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+    
+    // Cursivas (*text* o _text_) - evitar procesar dentro de código o negritas
+    html = html.replace(/\*([^*<]+)\*/g, (match, text) => {
+      // No procesar si está dentro de un tag code o pre
+      const before = html.substring(0, html.indexOf(match));
+      if (before.includes('<code') || before.includes('<pre')) {
+        return match;
+      }
+      return `<em>${text}</em>`;
+    });
+    html = html.replace(/_([^_<]+)_/g, (match, text) => {
+      const before = html.substring(0, html.indexOf(match));
+      if (before.includes('<code') || before.includes('<pre')) {
+        return match;
+      }
+      return `<em>${text}</em>`;
+    });
+    
+    // Enlaces [text](url)
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #2563eb; text-decoration: underline;">$1</a>');
+    
+    // Convertir líneas a párrafos si no tienen tags HTML
+    const finalLines = html.split('\n');
+    const finalResult: string[] = [];
+    let currentParagraph: string[] = [];
+    
+    for (const line of finalLines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        if (currentParagraph.length > 0) {
+          const paraText = currentParagraph.join(' ');
+          if (paraText && !paraText.match(/^<[^>]+>/)) {
+            finalResult.push(`<p style="margin: 8px 0; line-height: 1.6;">${paraText}</p>`);
+          } else {
+            finalResult.push(paraText);
+          }
+          currentParagraph = [];
+        }
+        continue;
+      }
+      
+      if (trimmed.match(/^<[^>]+>/) || trimmed.includes('</')) {
+        if (currentParagraph.length > 0) {
+          finalResult.push(currentParagraph.join(' '));
+          currentParagraph = [];
+        }
+        finalResult.push(trimmed);
+      } else {
+        currentParagraph.push(trimmed);
+      }
+    }
+    
+    if (currentParagraph.length > 0) {
+      const paraText = currentParagraph.join(' ');
+      if (paraText && !paraText.match(/^<[^>]+>/)) {
+        finalResult.push(`<p style="margin: 8px 0; line-height: 1.6;">${paraText}</p>`);
+      } else {
+        finalResult.push(paraText);
+      }
+    }
+    
+    return finalResult.join('\n');
+  };
+
+  // Función para procesar y limpiar HTML pegado
+  const processPastedHTML = (html: string): string => {
+    // Crear un elemento temporal para procesar el HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    
+    // Preservar bloques de código y pre
+    const codeBlocks = temp.querySelectorAll('pre, code');
+    codeBlocks.forEach(block => {
+      if (block.tagName === 'PRE') {
+        block.setAttribute('style', 
+          'background: #f4f4f4; padding: 12px; border-radius: 6px; overflow-x: auto; ' +
+          'font-family: "Courier New", monospace; font-size: 14px; line-height: 1.5; margin: 12px 0;'
+        );
+      } else if (block.tagName === 'CODE' && block.parentElement?.tagName !== 'PRE') {
+        block.setAttribute('style', 
+          'background: #f4f4f4; padding: 2px 6px; border-radius: 3px; ' +
+          'font-family: monospace; font-size: 0.9em;'
+        );
+      }
+    });
+    
+    // Preservar blockquotes
+    const blockquotes = temp.querySelectorAll('blockquote');
+    blockquotes.forEach(quote => {
+      quote.setAttribute('style', 
+        'border-left: 4px solid #ddd; padding-left: 16px; margin: 12px 0; ' +
+        'color: #666; font-style: italic;'
+      );
+    });
+    
+    // Mantener listas con estilos
+    const lists = temp.querySelectorAll('ul, ol');
+    lists.forEach(list => {
+      if (list.tagName === 'UL') {
+        list.setAttribute('style', 'margin: 12px 0; padding-left: 2em; list-style-type: disc;');
+      } else {
+        list.setAttribute('style', 'margin: 12px 0; padding-left: 2em;');
+      }
+    });
+    
+    // Mantener enlaces
+    const links = temp.querySelectorAll('a');
+    links.forEach(link => {
+      link.setAttribute('style', 'color: #2563eb; text-decoration: underline;');
+    });
+    
+    // Limpiar estilos innecesarios pero preservar importantes
+    const allElements = temp.querySelectorAll('*');
+    allElements.forEach(el => {
+      // Preservar color, background-color, font-weight, font-style importantes
+      const style = el.getAttribute('style') || '';
+      if (!style.includes('background') && !style.includes('color') && 
+          !style.includes('font-weight') && !style.includes('font-style')) {
+        el.removeAttribute('style');
+      }
+    });
+    
+    return temp.innerHTML;
+  };
+
   const handleInput = useCallback(() => {
     if (editorRef.current) {
       isUserTypingRef.current = true;
@@ -142,6 +408,54 @@ export function RichTextEditor({
       }
     }
   }, [onChange]);
+  
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    
+    const clipboardData = e.clipboardData || (window as any).clipboardData;
+    const selection = window.getSelection();
+    
+    if (!selection || !editorRef.current) return;
+    
+    let html = clipboardData.getData('text/html');
+    const text = clipboardData.getData('text/plain');
+    
+    // Si hay HTML, procesarlo; si no, intentar convertir markdown
+    let processedHTML = '';
+    
+    if (html && html.trim()) {
+      processedHTML = processPastedHTML(html);
+    } else if (text && text.trim()) {
+      // Intentar convertir markdown a HTML
+      processedHTML = markdownToHTML(text);
+    } else {
+      return;
+    }
+    
+    // Insertar el contenido procesado
+    if (selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = processedHTML;
+      const fragment = document.createDocumentFragment();
+      
+      while (tempDiv.firstChild) {
+        fragment.appendChild(tempDiv.firstChild);
+      }
+      
+      range.insertNode(fragment);
+      
+      // Colocar cursor después del contenido insertado
+      range.setStartAfter(fragment.lastChild || range.endContainer);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      handleInput();
+    }
+  }, [handleInput]);
 
   const execCommand = (command: string, value?: string | boolean) => {
     document.execCommand(command, false, value as string);
@@ -538,21 +852,21 @@ export function RichTextEditor({
             <span className="text-xs">Aa</span>
           </button>
           <MenuDropdown isOpen={showFontMenu} onClose={() => setShowFontMenu(false)} className="w-48 max-h-60 overflow-y-auto">
-            {FONT_OPTIONS.map((font) => (
-              <button
-                key={font.value}
-                type="button"
-                onClick={() => changeFontFamily(font.value)}
-                className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-100 transition-colors ${
-                  currentFont === font.value ? 'bg-gray-100 font-semibold' : ''
-                }`}
-                style={{ fontFamily: font.value }}
-              >
-                {font.label}
-              </button>
-            ))}
+              {FONT_OPTIONS.map((font) => (
+                <button
+                  key={font.value}
+                  type="button"
+                  onClick={() => changeFontFamily(font.value)}
+                  className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-100 transition-colors ${
+                    currentFont === font.value ? 'bg-gray-100 font-semibold' : ''
+                  }`}
+                  style={{ fontFamily: font.value }}
+                >
+                  {font.label}
+                </button>
+              ))}
           </MenuDropdown>
-        </div>
+            </div>
 
         {/* Divider */}
         <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-1">
@@ -574,9 +888,9 @@ export function RichTextEditor({
       {/* Editor - Estilo CUADERNO con líneas horizontales realistas */}
       <div className="relative bg-[#fefefe]" style={{ minHeight: '800px' }}>
         {/* Líneas horizontales del cuaderno - Solo azules/grises */}
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
+            <div 
+              className="absolute inset-0 pointer-events-none"
+              style={{
             backgroundImage: `repeating-linear-gradient(
               to bottom,
               transparent 0px,
@@ -586,14 +900,15 @@ export function RichTextEditor({
             )`,
             backgroundPosition: '16px 32px',
             backgroundSize: `calc(100% - 32px) ${lineHeight}px`,
-            backgroundRepeat: 'repeat-y',
-          }}
-        />
+                backgroundRepeat: 'repeat-y',
+              }}
+            />
         
         <div
           ref={editorRef}
           contentEditable
           onInput={handleInput}
+          onPaste={handlePaste}
           onKeyDown={(e) => {
             isUserTypingRef.current = true;
             if (e.key === 'Enter') {
@@ -628,16 +943,16 @@ export function RichTextEditor({
           }}
           onClick={() => {
             if (showFontMenu || showColorMenu || showHighlightMenu || showEmojiMenu || showShapeMenu) {
-              setTimeout(() => {
-                const activeElement = document.activeElement;
+            setTimeout(() => {
+              const activeElement = document.activeElement;
                 if (!activeElement || !(activeElement as HTMLElement).closest('.menu-dropdown-container')) {
-                  setShowFontMenu(false);
+                setShowFontMenu(false);
                   setShowColorMenu(false);
                   setShowHighlightMenu(false);
                   setShowEmojiMenu(false);
                   setShowShapeMenu(false);
-                }
-              }, 100);
+              }
+            }, 100);
             }
           }}
           className="px-16 py-8 focus:outline-none text-gray-900 relative z-10"
@@ -692,6 +1007,62 @@ export function RichTextEditor({
         }
         [contenteditable] li {
           margin: 0.3em 0;
+        }
+        [contenteditable] pre {
+          background: #f4f4f4;
+          padding: 12px;
+          border-radius: 6px;
+          overflow-x: auto;
+          font-family: 'Courier New', monospace;
+          font-size: 14px;
+          line-height: 1.5;
+          margin: 12px 0;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
+        [contenteditable] code {
+          background: #f4f4f4;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-family: 'Courier New', monospace;
+          font-size: 0.9em;
+        }
+        [contenteditable] pre code {
+          background: transparent;
+          padding: 0;
+          border-radius: 0;
+        }
+        [contenteditable] blockquote {
+          border-left: 4px solid #ddd;
+          padding-left: 16px;
+          margin: 12px 0;
+          color: #666;
+          font-style: italic;
+        }
+        [contenteditable] h1 {
+          font-size: 2em;
+          font-weight: 600;
+          margin: 24px 0 16px 0;
+        }
+        [contenteditable] h2 {
+          font-size: 1.5em;
+          font-weight: 600;
+          margin: 20px 0 12px 0;
+        }
+        [contenteditable] h3 {
+          font-size: 1.2em;
+          font-weight: 600;
+          margin: 16px 0 8px 0;
+        }
+        [contenteditable] a {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+        [contenteditable] strong {
+          font-weight: 600;
+        }
+        [contenteditable] em {
+          font-style: italic;
           line-height: ${lineHeight}px;
         }
         [contenteditable] strong {
