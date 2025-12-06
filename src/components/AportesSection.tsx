@@ -79,8 +79,18 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
 
       if (error) {
         console.error('Error loading aportes:', error);
-        if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
-          // Tabla no existe, simplemente mostrar vacío sin error
+        // Detectar si la tabla no existe (varios posibles mensajes)
+        const tableNotExists = 
+          error.code === 'PGRST116' || 
+          error.message?.toLowerCase().includes('does not exist') || 
+          error.message?.toLowerCase().includes('relation "aportes" does not exist') ||
+          error.message?.toLowerCase().includes('relation "public.aportes" does not exist') ||
+          error.hint?.toLowerCase().includes('perhaps you meant') ||
+          error.message?.toLowerCase().includes('could not find');
+        
+        if (tableNotExists) {
+          // Tabla no existe, mostrar vacío sin error en consola
+          console.warn('⚠️ La tabla aportes no existe. Ejecuta la migración SQL en Supabase.');
           setAportes([]);
           setLoading(false);
           return;
@@ -146,21 +156,34 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
         console.error('User ID usado:', userId);
         console.error('Post ID usado:', postId);
         
-        if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('relation "aportes" does not exist')) {
-          showToast('La tabla de aportes no existe. Contacta al administrador.', 'error');
+        // Detectar si la tabla no existe (varios posibles mensajes de error)
+        const tableNotExists = 
+          error.code === 'PGRST116' || 
+          error.message?.toLowerCase().includes('does not exist') || 
+          error.message?.toLowerCase().includes('relation "aportes" does not exist') ||
+          error.message?.toLowerCase().includes('relation "public.aportes" does not exist') ||
+          error.hint?.toLowerCase().includes('perhaps you meant') ||
+          error.message?.toLowerCase().includes('could not find') ||
+          error.details?.toLowerCase().includes('aportes');
+        
+        if (tableNotExists) {
+          showToast('⚠️ La tabla de aportes no existe en Supabase. Ejecuta la migración SQL 20250102000000_create_aportes_table.sql en el SQL Editor de Supabase. Ver EJECUTAR_MIGRACION_APORTES.md', 'error');
           setSubmitting(false);
           return;
         }
+        
         if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('policy') || error.message?.includes('RLS')) {
-          showToast('No tienes permiso para publicar. Verifica tu sesión.', 'error');
+          showToast('No tienes permiso para publicar. Verifica tu sesión y las políticas RLS.', 'error');
           setSubmitting(false);
           return;
         }
+        
         if (error.code === '23503' || error.message?.includes('foreign key')) {
           showToast('Error: El post no existe o no tienes acceso.', 'error');
           setSubmitting(false);
           return;
         }
+        
         if (error.code === '23505' || error.message?.includes('duplicate key')) {
           showToast('Este aporte ya existe. Intenta refrescar la página.', 'error');
           setSubmitting(false);
@@ -168,7 +191,14 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
         }
         
         // Mostrar mensaje de error más detallado
-        const errorMsg = error.hint || error.message || 'Error al crear el aporte. Verifica tu conexión e intenta de nuevo.';
+        let errorMsg = 'Error al crear el aporte. ';
+        if (error.hint) {
+          errorMsg += error.hint;
+        } else if (error.message) {
+          errorMsg += error.message;
+        } else {
+          errorMsg += 'Verifica tu conexión e intenta de nuevo.';
+        }
         showToast(errorMsg, 'error');
         setSubmitting(false);
         return;
