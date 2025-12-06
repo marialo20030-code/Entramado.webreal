@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Calendar, Lock, ChevronLeft, ChevronRight, Music, Play, FolderPlus, Folder } from 'lucide-react';
+import { X, Trash2, Calendar, Lock, ChevronLeft, ChevronRight, Music, Play, FolderPlus, Folder, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { extractColorsFromImage } from '../lib/colorUtils';
 import { AportesSection } from './AportesSection';
@@ -50,7 +50,7 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
   const [showFolderMenu, setShowFolderMenu] = useState(false);
   const [referencedPosts, setReferencedPosts] = useState<Post[]>([]);
   const [processedDescription, setProcessedDescription] = useState<string>('');
-  const [aportesExpanded, setAportesExpanded] = useState(false);
+  const [showAportes, setShowAportes] = useState(false);
 
   const canDelete = currentUserId === post?.created_by;
   const canEdit = currentUserId === post?.created_by;
@@ -322,18 +322,23 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="grid md:grid-cols-2 gap-0 h-full">
+          {/* Nuevo diseño: Vertical - Imagen arriba, texto debajo */}
+          <div className="flex flex-col h-full max-w-7xl mx-auto">
+            {/* Sección de imagen - Grande y prominente */}
             <div
-              className="flex items-center justify-center p-4 md:p-8 relative h-full min-h-[50vh] md:min-h-full"
-              style={{ background: backgroundGradient }}
+              className="flex items-center justify-center p-6 md:p-12 relative bg-gradient-to-b from-gray-50 to-gray-100"
+              style={{ 
+                minHeight: '60vh',
+                maxHeight: '70vh'
+              }}
             >
               {post.media_type === 'image' ? (
                 <>
                   <img
                     src={currentImage}
                     alt={post.title}
-                    className="max-w-full max-h-full w-auto h-auto object-contain"
-                    style={{ maxHeight: 'calc(100vh - 120px)' }}
+                    className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-2xl"
+                    style={{ maxHeight: '65vh' }}
                   />
 
                   {images.length > 1 && (
@@ -414,137 +419,172 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
               )}
             </div>
 
-            <div className="p-8 flex flex-col h-full bg-white/50 backdrop-blur-sm overflow-hidden">
-              <div 
-                className={`flex-1 overflow-y-auto transition-all duration-300 min-h-0`}
-                style={{
-                  maxHeight: aportesExpanded ? 'calc(50vh - 200px)' : 'none'
-                }}
-              >
-                {post.description && (
-                  <div className="relative bg-[#fefefe]" style={{ 
-                    minHeight: aportesExpanded ? '300px' : '400px'
-                  }}>
-                    {/* Título dentro de la página de texto */}
-                    <div className="px-16 pt-8 pb-4">
-                      <h2 className="text-4xl font-light text-gray-900 mb-6 leading-tight">{post.title}</h2>
-                    </div>
+            {/* Sección de texto - Estilo bloc de notas */}
+            <div className="flex-1 px-6 md:px-12 pb-6 pt-8">
+              {post.description && (
+                <div 
+                  className="relative mx-auto max-w-4xl"
+                  style={{
+                    background: 'linear-gradient(to bottom, #fef9e7 0%, #fef5e7 100%)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.5)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    minHeight: '400px',
+                    padding: '48px 64px 64px 64px'
+                  }}
+                >
+                  {/* Línea vertical del margen izquierdo (estilo bloc) */}
+                  <div 
+                    className="absolute left-8 top-0 bottom-0 w-0.5"
+                    style={{
+                      background: 'linear-gradient(to bottom, transparent, #dc2626 20px, #dc2626 calc(100% - 20px), transparent)',
+                      opacity: 0.3
+                    }}
+                  />
+                  
+                  {/* Líneas horizontales estilo bloc de notas */}
+                  {(() => {
+                    const fontSizeNum = 16;
+                    const lineHeightNum = 1.8;
+                    const lineHeight = fontSizeNum * lineHeightNum;
                     
-                    {/* Líneas horizontales del cuaderno - Igual que en creación */}
-                    {(() => {
-                      const fontSizeNum = 16; // Tamaño de fuente base
-                      const lineHeightNum = 1.8;
-                      const lineHeight = fontSizeNum * lineHeightNum; // 28.8px
-                      
-                      return (
-                        <div 
-                          className="absolute inset-0 pointer-events-none"
-                          style={{
-                            backgroundImage: `repeating-linear-gradient(
-                              to bottom,
-                              transparent 0px,
-                              transparent ${lineHeight - 1}px,
-                              #d1d5db ${lineHeight - 1}px,
-                              #d1d5db ${lineHeight}px
-                            )`,
-                            backgroundPosition: '16px 32px',
-                            backgroundSize: `calc(100% - 32px) ${lineHeight}px`,
-                            backgroundRepeat: 'repeat-y',
-                          }}
-                        />
-                      );
-                    })()}
-                    
-                    <div 
-                      className="text-gray-600 leading-relaxed prose prose-sm max-w-none relative z-10 px-16 pb-8 post-content"
-                      dangerouslySetInnerHTML={{ __html: processedDescription || post.description }}
-                      style={{
-                        fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-                        fontSize: '16px',
-                        lineHeight: '1.8',
-                        backgroundColor: 'transparent',
-                      }}
+                    return (
+                      <div 
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                          backgroundImage: `repeating-linear-gradient(
+                            to bottom,
+                            transparent 48px,
+                            transparent ${48 + lineHeight - 1}px,
+                            rgba(200, 200, 200, 0.3) ${48 + lineHeight - 1}px,
+                            rgba(200, 200, 200, 0.3) ${48 + lineHeight}px
+                          )`,
+                          backgroundPosition: '72px 0px',
+                          backgroundSize: `calc(100% - 80px) ${lineHeight}px`,
+                          backgroundRepeat: 'repeat-y',
+                          borderRadius: '8px'
+                        }}
+                      />
+                    );
+                  })()}
+                  
+                  {/* Título */}
+                  <div className="relative z-10 mb-6">
+                    <h2 className="text-4xl font-light text-gray-900 leading-tight" style={{ fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif' }}>
+                      {post.title}
+                    </h2>
+                  </div>
+                  
+                  {/* Contenido */}
+                  <div 
+                    className="relative z-10 text-gray-700 leading-relaxed prose prose-sm max-w-none post-content"
+                    dangerouslySetInnerHTML={{ __html: processedDescription || post.description }}
+                    style={{
+                      fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+                      fontSize: '16px',
+                      lineHeight: '1.8',
+                      backgroundColor: 'transparent',
+                    }}
+                  />
+                  <style>{`
+                    .post-content p {
+                      margin: 0;
+                      padding: 0;
+                      line-height: 1.8;
+                    }
+                    .post-content p:first-child {
+                      margin-top: 0;
+                    }
+                    .post-content p:last-child {
+                      margin-bottom: 0;
+                    }
+                    .post-content ul, .post-content ol {
+                      margin: 0.8em 0;
+                      padding-left: 2em;
+                    }
+                    .post-content strong {
+                      font-weight: 600;
+                    }
+                    .post-content em {
+                      font-style: italic;
+                    }
+                    .post-content u {
+                      text-decoration: underline;
+                    }
+                  `}</style>
+                </div>
+              )}
+
+              {/* Publicaciones referenciadas */}
+              {referencedPosts.length > 0 && (
+                <div className="mt-6 mx-auto max-w-4xl">
+                  <p className="text-sm text-gray-600 mb-3 font-medium">Publicaciones referenciadas</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {referencedPosts.map((referencedPost) => (
+                      <button
+                        key={referencedPost.id}
+                        onClick={() => {
+                          if (onPostClick) {
+                            onPostClick(referencedPost);
+                          }
+                        }}
+                        className="rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-300 transition-all group cursor-pointer bg-white"
+                      >
+                        <div className="relative aspect-video bg-gray-100">
+                          {referencedPost.media_type === 'image' ? (
+                            <img
+                              src={referencedPost.image_url}
+                              alt={referencedPost.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                          ) : referencedPost.media_type === 'spotify' ? (
+                            <div className="w-full h-full flex items-center justify-center bg-green-500">
+                              <Music size={32} className="text-white" />
+                            </div>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-red-500">
+                              <Play size={32} className="text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-2 bg-white">
+                          <p className="text-xs font-medium text-gray-800 line-clamp-2 text-left">
+                            {referencedPost.title}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Botón para mostrar/ocultar comentarios */}
+              <div className="mt-6 mx-auto max-w-4xl">
+                <button
+                  onClick={() => setShowAportes(!showAportes)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all group"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare size={18} className="text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">Comentarios</span>
+                  </div>
+                  {showAportes ? (
+                    <ChevronUp size={20} className="text-gray-500 group-hover:text-gray-700 transition-colors" />
+                  ) : (
+                    <ChevronDown size={20} className="text-gray-500 group-hover:text-gray-700 transition-colors" />
+                  )}
+                </button>
+
+                {/* Sección de Aportes - Expandible */}
+                {showAportes && (
+                  <div className="mt-4 bg-white rounded-lg border border-gray-200 p-4">
+                    <AportesSection 
+                      postId={post.id} 
+                      userProfiles={userProfiles} 
+                      postColors={bgColors}
                     />
-                    <style>{`
-                      .post-content p {
-                        margin: 0;
-                        padding: 0;
-                        line-height: 1.8;
-                      }
-                      .post-content p:first-child {
-                        margin-top: 0;
-                      }
-                      .post-content p:last-child {
-                        margin-bottom: 0;
-                      }
-                      .post-content ul, .post-content ol {
-                        margin: 0.8em 0;
-                        padding-left: 2em;
-                      }
-                      .post-content strong {
-                        font-weight: 600;
-                      }
-                      .post-content em {
-                        font-style: italic;
-                      }
-                      .post-content u {
-                        text-decoration: underline;
-                      }
-                    `}</style>
                   </div>
                 )}
-
-                {referencedPosts.length > 0 && (
-                  <div className="pt-4 border-t border-gray-200 mt-4">
-                    <p className="text-sm text-gray-500 mb-3">Publicaciones referenciadas</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {referencedPosts.map((referencedPost) => (
-                        <button
-                          key={referencedPost.id}
-                          onClick={() => {
-                            if (onPostClick) {
-                              onPostClick(referencedPost);
-                            }
-                          }}
-                          className="rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-300 transition-all group cursor-pointer"
-                        >
-                          <div className="relative aspect-video bg-gray-100">
-                            {referencedPost.media_type === 'image' ? (
-                              <img
-                                src={referencedPost.image_url}
-                                alt={referencedPost.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                              />
-                            ) : referencedPost.media_type === 'spotify' ? (
-                              <div className="w-full h-full flex items-center justify-center bg-green-500">
-                                <Music size={32} className="text-white" />
-                              </div>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-red-500">
-                                <Play size={32} className="text-white" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-2 bg-white">
-                            <p className="text-xs font-medium text-gray-800 line-clamp-2 text-left">
-                              {referencedPost.title}
-                            </p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Sección de Aportes - Fija abajo, mismo ancho que texto, siempre visible */}
-              <div className="pt-4 border-t border-gray-200/30 mt-4 flex-shrink-0 bg-white/50">
-                <AportesSection 
-                  postId={post.id} 
-                  userProfiles={userProfiles} 
-                  postColors={bgColors}
-                  onExpandedChange={setAportesExpanded}
-                />
               </div>
             </div>
           </div>

@@ -23,7 +23,6 @@ interface AportesSectionProps {
   postId: string;
   userProfiles: { [userId: string]: UserProfile };
   postColors?: string[];
-  onExpandedChange?: (expanded: boolean) => void;
 }
 
 interface Toast {
@@ -32,7 +31,7 @@ interface Toast {
   type: 'success' | 'error' | 'info';
 }
 
-export function AportesSection({ postId, userProfiles, postColors = [], onExpandedChange }: AportesSectionProps) {
+export function AportesSection({ postId, userProfiles, postColors = [] }: AportesSectionProps) {
   const { user } = useAuth();
   const [aportes, setAportes] = useState<Aporte[]>([]);
   const [loading, setLoading] = useState(true);
@@ -400,13 +399,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
           </div>
           {aportes.length > 0 && (
             <button
-              onClick={() => {
-                const newExpanded = !isExpanded;
-                setIsExpanded(newExpanded);
-                if (onExpandedChange) {
-                  onExpandedChange(newExpanded);
-                }
-              }}
+              onClick={() => setIsExpanded(!isExpanded)}
               className="text-[10px] font-medium px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors"
               style={{ color: accentColor }}
             >
