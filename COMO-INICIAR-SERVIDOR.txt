@@ -1,0 +1,64 @@
+========================================
+  CÓMO INICIAR EL SERVIDOR RÁPIDAMENTE
+========================================
+
+Hay 3 formas de iniciar el servidor. Elige la más fácil para ti:
+
+────────────────────────────────────────
+OPCIÓN 1: Script Rápido (RECOMENDADO) ⭐
+────────────────────────────────────────
+Haz doble clic en:
+  → INICIAR-RAPIDO.bat
+
+Este script:
+  ✓ Cierra procesos anteriores automáticamente
+  ✓ Verifica todo antes de iniciar
+  ✓ Abre el navegador automáticamente
+  ✓ Funciona siempre, sin errores
+
+────────────────────────────────────────
+OPCIÓN 2: Script Estándar
+────────────────────────────────────────
+Haz doble clic en:
+  → INICIAR.bat
+
+────────────────────────────────────────
+OPCIÓN 3: PowerShell (si usas PowerShell)
+────────────────────────────────────────
+Haz clic derecho en:
+  → iniciar.ps1
+  → "Ejecutar con PowerShell"
+
+O desde PowerShell:
+  .\iniciar.ps1
+
+────────────────────────────────────────
+¿QUÉ PASA SI HAY ERRORES?
+────────────────────────────────────────
+
+1. El puerto 5173 está ocupado:
+   → Cierra todas las ventanas de Node.js
+   → Ejecuta INICIAR-RAPIDO.bat de nuevo
+
+2. Error de permisos en PowerShell:
+   → Usa INICIAR-RAPIDO.bat (no tiene este problema)
+   → O ejecuta: Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+3. Node.js no encontrado:
+   → Instala Node.js desde https://nodejs.org
+   → Reinicia la computadora después de instalar
+
+────────────────────────────────────────
+URL DEL SERVIDOR
+────────────────────────────────────────
+Una vez iniciado, abre tu navegador en:
+  http://localhost:5173
+  http://127.0.0.1:5173
+
+────────────────────────────────────────
+TIP: Usa INICIAR-RAPIDO.bat siempre
+────────────────────────────────────────
+Es el más rápido y confiable.
+
+========================================
+

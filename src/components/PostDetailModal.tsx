@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Trash2, Calendar, Lock, ChevronLeft, ChevronRight, Music, Play, FolderPlus, Folder } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { extractColorsFromImage } from '../lib/colorUtils';
+import { AportesSection } from './AportesSection';
 
 interface Post {
   id: string;
@@ -28,6 +29,8 @@ interface Folder {
 interface UserProfile {
   id: string;
   name: string;
+  username?: string;
+  email?: string;
 }
 
 interface PostDetailModalProps {
@@ -320,7 +323,7 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
         <div className="flex-1 overflow-y-auto">
           <div className="grid md:grid-cols-2 gap-0 h-full">
             <div
-              className="flex items-center justify-center p-4 md:p-8 relative h-full min-h-[50vh] md:min-h-0"
+              className="flex items-center justify-center p-4 md:p-8 relative h-full min-h-[50vh] md:min-h-full"
               style={{ background: backgroundGradient }}
             >
               {post.media_type === 'image' ? (
@@ -362,19 +365,19 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                   )}
                 </>
               ) : post.media_type === 'spotify' ? (
-                <div className="flex flex-col items-center justify-center w-full h-full p-8 md:p-12">
-                  <div className="w-full max-w-2xl">
+                <div className="flex items-center justify-center w-full h-full p-6 md:p-8">
+                  <div className="w-full max-w-2xl flex items-center justify-center">
                     {(() => {
                       const spotifyUrl = post.media_url || '';
                       let trackId = '';
-                      
+
                       // Extraer ID del track de diferentes formatos de URL
                       if (spotifyUrl.includes('/track/')) {
                         trackId = spotifyUrl.split('/track/')[1]?.split('?')[0]?.split('&')[0] || '';
                       } else if (spotifyUrl.includes('spotify:track:')) {
                         trackId = spotifyUrl.split('spotify:track:')[1]?.split('?')[0] || '';
                       }
-                      
+
                       return trackId ? (
                         <iframe
                           src={`https://open.spotify.com/embed/track/${trackId}`}
@@ -411,15 +414,15 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
             </div>
 
             <div className="p-8 space-y-4 overflow-y-auto h-full bg-white/50 backdrop-blur-sm">
-              <div>
-                <h2 className="text-3xl font-light text-gray-800 mb-2">{post.title}</h2>
-              </div>
-
               {post.description && (
                 <div className="relative bg-[#fefcf8] rounded-lg shadow-lg overflow-hidden" style={{ 
                   boxShadow: '0 0 0 1px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.5) inset',
                   minHeight: '400px'
                 }}>
+                  {/* Título dentro de la página de texto */}
+                  <div className="px-16 pt-8 pb-4">
+                    <h2 className="text-4xl font-light text-gray-900 mb-6 leading-tight">{post.title}</h2>
+                  </div>
                   {/* Fondo con líneas rayadas */}
                   {(() => {
                     const fontSizeNum = 16; // Tamaño de fuente base
@@ -446,7 +449,7 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                   })()}
                   
                   <div 
-                    className="text-gray-600 leading-relaxed prose prose-sm max-w-none relative z-10 px-16 py-8 post-content"
+                    className="text-gray-600 leading-relaxed prose prose-sm max-w-none relative z-10 px-16 pb-8 post-content"
                     dangerouslySetInnerHTML={{ __html: processedDescription || post.description }}
                     style={{
                       fontFamily: '"Roboto", "Helvetica Neue", Arial, sans-serif',
@@ -552,6 +555,11 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                   </div>
                 </div>
               )}
+
+              {/* Sección de Aportes */}
+              <div className="pt-6 border-t border-gray-200/30">
+                <AportesSection postId={post.id} userProfiles={userProfiles} postColors={bgColors} />
+              </div>
             </div>
           </div>
         </div>

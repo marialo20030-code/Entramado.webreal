@@ -1,0 +1,40 @@
+========================================
+  VER EL SERVIDOR DENTRO DE CURSOR
+========================================
+
+MÉTODO MÁS RÁPIDO (3 pasos):
+
+1. Inicia el servidor (si no está corriendo):
+   → Doble clic en: INICIAR-RAPIDO.bat
+
+2. Abre Simple Browser en Cursor:
+   → Presiona: Ctrl+Shift+P
+   → Escribe: Simple Browser
+   → Presiona Enter
+
+3. Escribe la URL:
+   → http://localhost:5173
+   → Presiona Enter
+
+¡LISTO! Verás tu app dentro de Cursor.
+
+========================================
+ATAJO RÁPIDO (opcional):
+
+Si quieres crear un atajo personalizado:
+
+1. Ctrl+K Ctrl+S (abre atajos de teclado)
+2. Busca: simpleBrowser.show
+3. Asigna: Ctrl+Alt+B (o el que quieras)
+4. Ahora con Ctrl+Alt+B se abre directamente
+
+========================================
+TIPS:
+
+- El navegador se actualiza automáticamente
+- Puedes dividir pantalla (ver código y navegador juntos)
+- Ctrl+R para refrescar
+- Ctrl+W para cerrar el panel
+
+========================================
+

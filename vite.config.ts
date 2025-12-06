@@ -14,10 +14,15 @@ export default defineConfig({
     host: '127.0.0.1', // Usa IPv4 explícitamente para mejor compatibilidad en Windows
     port: 5173,
     strictPort: false,
-    open: false,
+    open: true, // Abre el navegador automáticamente
     cors: true,
     hmr: {
       host: 'localhost',
+    },
+    // Optimizaciones para inicio más rápido
+    watch: {
+      usePolling: false,
+      interval: 1000,
     },
   },
   optimizeDeps: {

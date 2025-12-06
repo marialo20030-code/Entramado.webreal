@@ -1,0 +1,60 @@
+========================================
+  CREAR ATAJO PARA ABRIR NAVEGADOR
+========================================
+
+PASOS PASO A PASO:
+
+1. Presiona: Ctrl+K Ctrl+S
+   (O ve a: File → Preferences → Keyboard Shortcuts)
+
+2. En la barra de búsqueda (arriba), escribe:
+   simpleBrowser.show
+
+3. Deberías ver una línea que dice:
+   "Simple Browser: Show"
+   (puede estar en "View" o buscar en todas las categorías)
+
+4. Haz DOBLE CLIC en esa línea
+   (o haz clic derecho → "Change Keybinding")
+
+5. Presiona las teclas que quieres usar como atajo:
+   Recomendado: Ctrl+Alt+B
+   (presiona las 3 teclas juntas: Ctrl + Alt + B)
+
+6. Si aparece un error de "conflicto":
+   - El atajo ya está en uso
+   - Elige otro atajo (por ejemplo: Ctrl+Alt+V)
+
+7. Presiona Enter para confirmar
+
+8. ¡LISTO! Ahora cuando presiones tu atajo, se abrirá Simple Browser
+
+========================================
+SI NO ENCUENTRAS "simpleBrowser.show":
+
+1. En la barra de búsqueda, escribe solo:
+   simple browser
+
+2. O busca:
+   browser
+
+3. Deberías ver varias opciones relacionadas con navegador
+
+========================================
+ATAJOS SUGERIDOS (elige uno):
+
+- Ctrl+Alt+B (recomendado - Browser)
+- Ctrl+Alt+V (View)
+- Ctrl+Alt+N (Navegador)
+- Ctrl+Shift+B (si no está en uso)
+
+========================================
+PROBAR EL ATAJO:
+
+1. Presiona tu atajo personalizado
+2. Debería abrirse Simple Browser
+3. Escribe: http://localhost:5173
+4. Presiona Enter
+
+========================================
+

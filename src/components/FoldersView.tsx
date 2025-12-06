@@ -135,19 +135,6 @@ export function FoldersView({ folders, posts, onFolderSelect, onRefresh }: Folde
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div
-          onClick={() => onFolderSelect(null)}
-          className="group bg-gradient-to-br from-gray-100 to-gray-200 p-6 rounded-3xl cursor-pointer hover:shadow-xl transition-all transform hover:scale-105"
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-3 bg-white/80 rounded-2xl">
-              <Folder size={24} className="text-gray-600" />
-            </div>
-            <h3 className="font-medium text-gray-800">Todas</h3>
-          </div>
-          <p className="text-2xl font-light text-gray-700">{posts.length}</p>
-        </div>
-
         {folders.map((folder) => (
           <div
             key={folder.id}

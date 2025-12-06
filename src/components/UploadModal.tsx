@@ -808,14 +808,17 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
           <button
             type="button"
             onClick={() => setIsPrivate(!isPrivate)}
-            className={`p-2 rounded-lg transition-all ${
+            className={`p-2 rounded-lg transition-all group relative ${
               isPrivate
                 ? 'bg-blue-100 text-blue-600'
                 : 'bg-[#fefcf8] text-gray-700 hover:bg-[#faf8f3] border border-gray-300'
             }`}
-            title={isPrivate ? 'Solo para ti' : 'Visible para todos'}
+            title="Publicar de forma privada"
           >
             {isPrivate ? <Lock size={18} /> : <Unlock size={18} />}
+            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+              Publicar de forma privada
+            </span>
           </button>
 
           <button
@@ -848,17 +851,18 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
         >
           <div className="flex-1 overflow-y-auto" style={{ backgroundColor: '#f5f1e8' }}>
             <div className="max-w-6xl mx-auto py-4 px-4">
-              {/* Título - arriba de todo, sin formato */}
+              {/* Título - arriba de todo, con negrita suave */}
               <div className="mb-4">
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Título"
-                  className="w-full px-4 py-3 text-2xl font-light text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 focus:outline-none focus:border-gray-500 transition-colors placeholder-gray-400"
+                  className="w-full px-4 py-3 text-2xl text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 focus:outline-none focus:border-gray-500 transition-colors placeholder-gray-400"
                   style={{
                     fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                     letterSpacing: '-0.02em',
+                    fontWeight: '600',
                   }}
                 />
               </div>

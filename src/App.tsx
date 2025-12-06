@@ -5,6 +5,7 @@ import { Auth } from './components/Auth';
 import { PinterestGrid } from './components/PinterestGrid';
 import { CalendarView } from './components/CalendarView';
 import { FoldersView } from './components/FoldersView';
+import { FolderContentView } from './components/FolderContentView';
 import { UploadModal } from './components/UploadModal';
 import { PostDetailModal } from './components/PostDetailModal';
 import { SearchBar } from './components/SearchBar';
@@ -163,7 +164,8 @@ function App() {
     try {
       const [postsResponse, foldersResponse, profilesResponse] = await Promise.all([
         supabase.from('posts').select('*').order('created_at', { ascending: false }),
-        user ? supabase.from('folders').select('*').order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
+        // Solo cargar carpetas del usuario actual (privadas)
+        user ? supabase.from('folders').select('*').eq('created_by', user.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
         supabase.from('user_profiles').select('*'),
       ]);
 
@@ -346,13 +348,19 @@ function App() {
     post.title.toLowerCase().includes(folderSearchQuery.toLowerCase())
   );
 
+  // Para la vista de carpeta, no aplicar filtro de búsqueda (se maneja en FolderContentView)
+  // Para la vista general, aplicar ambos filtros
   const filteredPosts = posts.filter((post) => {
-    const matchesFolder = !selectedFolderId || post.folder_id === selectedFolderId;
+    if (selectedFolderId) {
+      // En vista de carpeta, solo filtrar por carpeta (sin búsqueda)
+      return post.folder_id === selectedFolderId;
+    }
+    // En vista general, aplicar búsqueda
     const matchesSearch =
       searchQuery === '' ||
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFolder && matchesSearch;
+    return matchesSearch;
   });
 
   if (authLoading) {
@@ -372,7 +380,16 @@ function App() {
       <nav className="bg-white/90 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between gap-4">
-            <EntramadoLogo />
+            <button
+              onClick={() => {
+                navigate('/');
+                setSelectedFolderId(null);
+                setSearchParams({});
+              }}
+              className="hover:opacity-80 transition-opacity"
+            >
+              <EntramadoLogo />
+            </button>
 
             <div className="flex-1 max-w-md mx-4">
               <SearchBar onSearch={setSearchQuery} />
@@ -654,6 +671,54 @@ function App() {
               setIsUploadModalOpen(true);
             }}
           />
+        ) : selectedFolderId ? (
+          // Vista de contenido de carpeta
+          (() => {
+            const selectedFolder = folders.find((f) => f.id === selectedFolderId);
+            const folderPosts = filteredPosts.filter((post) => post.folder_id === selectedFolderId);
+            
+            if (!selectedFolder) {
+              return (
+                <div className="text-center py-12">
+                  <p className="text-gray-400">Carpeta no encontrada</p>
+                  <button
+                    onClick={() => {
+                      setSelectedFolderId(null);
+                      navigate('/folders');
+                    }}
+                    className="mt-4 text-blue-500 hover:underline"
+                  >
+                    Volver a carpetas
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <FolderContentView
+                folder={selectedFolder}
+                posts={posts}
+                folderPosts={folderPosts}
+                onBack={() => {
+                  setSelectedFolderId(null);
+                  navigate('/folders');
+                }}
+                onPostClick={(post) => {
+                  setSelectedPost(post);
+                  setSearchParams({ post: post.id }, { replace: false });
+                }}
+                onEdit={(post) => {
+                  setPostToEdit(post);
+                  setIsUploadModalOpen(true);
+                }}
+                onDelete={handleDeletePost}
+                onRefresh={fetchData}
+                postColors={postColors}
+                userProfiles={userProfiles}
+                currentUserId={user?.id}
+              />
+            );
+          })()
         ) : (
           <PinterestGrid
             posts={filteredPosts}
@@ -674,7 +739,7 @@ function App() {
           />
         )}
 
-        {!loading && filteredPosts.length === 0 && view !== 'folders' && view !== 'profile' && (
+        {!loading && filteredPosts.length === 0 && view !== 'folders' && view !== 'profile' && !selectedFolderId && (
           <div className="text-center py-12">
             <p className="text-gray-400 mb-4">
               {searchQuery ? 'No se encontraron resultados' : 'No hay publicaciones aún'}
