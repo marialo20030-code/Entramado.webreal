@@ -104,11 +104,16 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!user || !newAporte.trim()) {
       if (!user) {
         showToast('Debes iniciar sesión para publicar un aporte.', 'error');
+      } else {
+        showToast('Escribe algo antes de publicar.', 'error');
       }
       return;
     }
@@ -304,9 +309,9 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
     ? primaryColor
     : '#f59e0b';
 
-  // Mostrar solo los 3 más relevantes cuando no está expandido
-  const visibleAportes = isExpanded ? aportes : aportes.slice(0, 3);
-  const hasMoreAportes = aportes.length > 3;
+  // Mostrar solo los 2 más relevantes cuando no está expandido
+  const visibleAportes = isExpanded ? aportes : aportes.slice(0, 2);
+  const hasMoreAportes = aportes.length > 2;
 
   return (
     <div className="relative w-full">
@@ -363,7 +368,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
               </span>
             )}
           </div>
-          {hasMoreAportes && (
+          {aportes.length > 0 && (
             <button
               onClick={() => {
                 const newExpanded = !isExpanded;
@@ -383,7 +388,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
 
       {/* Aportes List - Con altura limitada cuando está colapsado, scroll interno cuando expandido */}
       <div className={`space-y-2 overflow-y-auto pr-2 custom-scrollbar mb-3 transition-all duration-300 ${
-        isExpanded ? 'max-h-[400px]' : 'max-h-[200px]'
+        isExpanded ? 'max-h-[600px]' : 'max-h-[120px]'
       }`}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
@@ -409,7 +414,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
             return (
               <div
                 key={aporte.id}
-                className="group rounded-lg p-3 shadow-sm border transition-all duration-200"
+                className="group rounded-lg p-2.5 shadow-sm border transition-all duration-200"
                 style={{
                   animation: `fadeInUp 0.3s ease-out ${index * 0.05}s both`,
                   background: commentGradient,
@@ -424,12 +429,12 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
                   e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
                 }}
               >
-                {/* User Header - Más compacto */}
+                {/* User Header - Más compacto, siempre visible */}
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="relative flex-shrink-0">
                       <div 
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm ring-1"
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm ring-1"
                         style={{
                           background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
                           ringColor: borderColor
@@ -439,16 +444,20 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 truncate">
-                        {userName}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <Clock className="w-2.5 h-2.5" />
-                          <span className="text-xs">{formatDate(aporte.created_at)}</span>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold text-gray-900 truncate">
+                          {userName}
+                        </p>
+                        <span className="text-[10px] text-gray-400">•</span>
+                        <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatDate(aporte.created_at)}</span>
                         </div>
                         {isEdited && (
-                          <span className="text-xs text-gray-400 italic">(editado)</span>
+                          <>
+                            <span className="text-[10px] text-gray-400">•</span>
+                            <span className="text-[10px] text-gray-400 italic">editado</span>
+                          </>
                         )}
                       </div>
                     </div>
@@ -556,7 +565,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
                         </div>
                       </div>
                     ) : (
-                      <div className="ml-10">
+                      <div className="ml-9">
                         <p className="text-gray-800 whitespace-pre-wrap break-words leading-relaxed text-xs">
                           {aporte.content}
                         </p>
@@ -570,7 +579,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
 
       {/* New Aporte Form - Después de la lista, siempre visible */}
       {user ? (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="mt-2">
           <div 
             className="rounded-lg p-3 border shadow-sm"
             style={{
@@ -580,7 +589,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
           >
             <div className="flex items-start gap-2">
               <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm flex-shrink-0"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm flex-shrink-0"
                 style={{
                   background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
                 }}
@@ -600,7 +609,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
                   style={{
                     borderColor: `${primaryColor}60`,
                     focusRingColor: `${primaryColor}30`,
-                    maxHeight: '80px'
+                    maxHeight: '70px'
                   }}
                   onFocus={(e) => {
                     e.target.style.borderColor = accentColor;
@@ -611,11 +620,23 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
                     e.target.style.boxShadow = 'none';
                   }}
                   rows={2}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                      e.preventDefault();
+                      if (!submitting && newAporte.trim()) {
+                        handleSubmit(e as any);
+                      }
+                    }
+                  }}
                 />
                 <div className="flex items-center justify-end mt-2">
                   <button
                     type="submit"
                     disabled={submitting || !newAporte.trim()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleSubmit(e as any);
+                    }}
                     className="px-4 py-1.5 text-xs font-semibold text-white rounded-lg hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 disabled:hover:shadow-none"
                     style={{
                       background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
