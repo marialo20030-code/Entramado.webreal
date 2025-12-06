@@ -23,6 +23,7 @@ interface AportesSectionProps {
   postId: string;
   userProfiles: { [userId: string]: UserProfile };
   postColors?: string[];
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 interface Toast {
@@ -31,7 +32,7 @@ interface Toast {
   type: 'success' | 'error' | 'info';
 }
 
-export function AportesSection({ postId, userProfiles, postColors = [] }: AportesSectionProps) {
+export function AportesSection({ postId, userProfiles, postColors = [], onExpandedChange }: AportesSectionProps) {
   const { user } = useAuth();
   const [aportes, setAportes] = useState<Aporte[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +42,7 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
   const [editContent, setEditContent] = useState('');
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [expandedMenuId, setExpandedMenuId] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -73,7 +75,7 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
         .from('aportes')
         .select('*')
         .eq('post_id', postId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error loading aportes:', error);
@@ -104,21 +106,29 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !newAporte.trim()) return;
+    if (!user || !newAporte.trim()) {
+      if (!user) {
+        showToast('Debes iniciar sesión para publicar un aporte.', 'error');
+      }
+      return;
+    }
 
     setSubmitting(true);
     try {
       // Verificar que el usuario esté autenticado
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session) {
+      if (sessionError || !session || !session.user) {
         showToast('No estás autenticado. Por favor, inicia sesión.', 'error');
         setSubmitting(false);
         return;
       }
 
+      // Usar el user_id de la sesión para mayor seguridad
+      const userId = session.user.id;
+
       const { data, error } = await supabase.from('aportes').insert({
         post_id: postId,
-        user_id: user.id,
+        user_id: userId,
         content: newAporte.trim(),
       }).select();
 
@@ -128,23 +138,34 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
         console.error('Mensaje:', error.message);
         console.error('Detalles:', error.details);
         console.error('Hint:', error.hint);
+        console.error('User ID usado:', userId);
+        console.error('Post ID usado:', postId);
         
         if (error.code === 'PGRST116' || error.message?.includes('does not exist') || error.message?.includes('relation "aportes" does not exist')) {
-          showToast('La tabla de aportes no existe. Ejecuta la migración 20250102000000_create_aportes_table.sql en Supabase.', 'error');
+          showToast('La tabla de aportes no existe. Contacta al administrador.', 'error');
+          setSubmitting(false);
           return;
         }
         if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('policy') || error.message?.includes('RLS')) {
-          showToast('No tienes permiso. Verifica que la política RLS esté configurada correctamente.', 'error');
+          showToast('No tienes permiso para publicar. Verifica tu sesión.', 'error');
+          setSubmitting(false);
           return;
         }
         if (error.code === '23503' || error.message?.includes('foreign key')) {
           showToast('Error: El post no existe o no tienes acceso.', 'error');
+          setSubmitting(false);
+          return;
+        }
+        if (error.code === '23505' || error.message?.includes('duplicate key')) {
+          showToast('Este aporte ya existe. Intenta refrescar la página.', 'error');
+          setSubmitting(false);
           return;
         }
         
         // Mostrar mensaje de error más detallado
-        const errorMsg = error.hint || error.message || 'Error al crear el aporte. Intenta de nuevo.';
+        const errorMsg = error.hint || error.message || 'Error al crear el aporte. Verifica tu conexión e intenta de nuevo.';
         showToast(errorMsg, 'error');
+        setSubmitting(false);
         return;
       }
 
@@ -283,8 +304,12 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
     ? primaryColor
     : '#f59e0b';
 
+  // Mostrar solo los 3 más relevantes cuando no está expandido
+  const visibleAportes = isExpanded ? aportes : aportes.slice(0, 3);
+  const hasMoreAportes = aportes.length > 3;
+
   return (
-    <div className="relative max-w-lg mx-auto">
+    <div className="relative w-full">
       {/* Toast Notifications */}
       <div className="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none">
         {toasts.map((toast) => (
@@ -316,7 +341,7 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
         ))}
       </div>
 
-      {/* Header Section - Más compacto */}
+      {/* Header Section - Con botón expandir/colapsar */}
       <div className="mb-3 pb-2 border-b" style={{ borderColor: borderColor }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -338,11 +363,28 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
               </span>
             )}
           </div>
+          {hasMoreAportes && (
+            <button
+              onClick={() => {
+                const newExpanded = !isExpanded;
+                setIsExpanded(newExpanded);
+                if (onExpandedChange) {
+                  onExpandedChange(newExpanded);
+                }
+              }}
+              className="text-xs font-medium px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+              style={{ color: accentColor }}
+            >
+              {isExpanded ? 'Ver menos' : `Ver todos (${aportes.length})`}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Aportes List - Con altura limitada y scroll interno (ARRIBA) */}
-      <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar mb-3">
+      {/* Aportes List - Con altura limitada cuando está colapsado, scroll interno cuando expandido */}
+      <div className={`space-y-2 overflow-y-auto pr-2 custom-scrollbar mb-3 transition-all duration-300 ${
+        isExpanded ? 'max-h-[400px]' : 'max-h-[200px]'
+      }`}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
             <div className="relative">
@@ -357,7 +399,7 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
             </p>
           </div>
         ) : (
-          aportes.map((aporte, index) => {
+          visibleAportes.map((aporte, index) => {
             const isOwner = user && aporte.user_id === user.id;
             const isEditing = editingId === aporte.id;
             const userName = getUserName(aporte.user_id);
