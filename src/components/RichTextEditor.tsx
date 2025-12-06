@@ -573,18 +573,7 @@ export function RichTextEditor({
 
       {/* Editor - Estilo CUADERNO con líneas horizontales realistas */}
       <div className="relative bg-[#fefefe]" style={{ minHeight: '800px' }}>
-        {/* Margen izquierdo del cuaderno */}
-        <div 
-          className="absolute left-0 top-0 bottom-0"
-          style={{
-            width: '48px',
-            background: 'repeating-linear-gradient(to bottom, transparent 0px, transparent 23px, #ff6b6b 23px, #ff6b6b 24px)',
-            opacity: 0.3,
-            pointerEvents: 'none'
-          }}
-        />
-        
-        {/* Líneas horizontales del cuaderno - MUY REALISTAS */}
+        {/* Líneas horizontales del cuaderno - Solo azules/grises */}
         <div 
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -595,20 +584,9 @@ export function RichTextEditor({
               #d1d5db ${lineHeight - 1}px,
               #d1d5db ${lineHeight}px
             )`,
-            backgroundPosition: '48px 32px',
-            backgroundSize: `calc(100% - 48px) ${lineHeight}px`,
+            backgroundPosition: '16px 32px',
+            backgroundSize: `calc(100% - 32px) ${lineHeight}px`,
             backgroundRepeat: 'repeat-y',
-          }}
-        />
-        
-        {/* Línea vertical del margen */}
-        <div 
-          className="absolute top-0 bottom-0 pointer-events-none"
-          style={{
-            left: '48px',
-            width: '1px',
-            background: '#fbbf24',
-            opacity: 0.4
           }}
         />
         
@@ -662,7 +640,7 @@ export function RichTextEditor({
               }, 100);
             }
           }}
-          className="pl-20 pr-16 py-8 focus:outline-none text-gray-900 relative z-10"
+          className="px-16 py-8 focus:outline-none text-gray-900 relative z-10"
           style={{
             fontFamily: currentFont || fontFamily,
             fontSize: fontSize,
