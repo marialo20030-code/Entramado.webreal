@@ -414,11 +414,11 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
               )}
             </div>
 
-            <div className="p-8 flex flex-col h-full bg-white/50 backdrop-blur-sm">
+            <div className="p-8 flex flex-col h-full bg-white/50 backdrop-blur-sm overflow-hidden">
               <div 
-                className={`flex-1 overflow-y-auto transition-all duration-300`}
+                className={`flex-1 overflow-y-auto transition-all duration-300 min-h-0`}
                 style={{
-                  maxHeight: aportesExpanded ? 'calc(50vh - 120px)' : 'none'
+                  maxHeight: aportesExpanded ? 'calc(50vh - 200px)' : 'none'
                 }}
               >
                 {post.description && (
@@ -537,8 +537,8 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                 )}
               </div>
 
-              {/* Sección de Aportes - Fija abajo, mismo ancho que texto */}
-              <div className="pt-4 border-t border-gray-200/30 mt-4 flex-shrink-0">
+              {/* Sección de Aportes - Fija abajo, mismo ancho que texto, siempre visible */}
+              <div className="pt-4 border-t border-gray-200/30 mt-4 flex-shrink-0 bg-white/50">
                 <AportesSection 
                   postId={post.id} 
                   userProfiles={userProfiles} 
