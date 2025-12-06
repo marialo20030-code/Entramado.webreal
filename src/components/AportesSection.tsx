@@ -23,6 +23,7 @@ interface AportesSectionProps {
   postId: string;
   userProfiles: { [userId: string]: UserProfile };
   postColors?: string[];
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 interface Toast {
@@ -31,7 +32,7 @@ interface Toast {
   type: 'success' | 'error' | 'info';
 }
 
-export function AportesSection({ postId, userProfiles, postColors = [] }: AportesSectionProps) {
+export function AportesSection({ postId, userProfiles, postColors = [], onExpandedChange }: AportesSectionProps) {
   const { user } = useAuth();
   const [aportes, setAportes] = useState<Aporte[]>([]);
   const [loading, setLoading] = useState(true);
@@ -375,43 +376,40 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
         ))}
       </div>
 
-      {/* Header Section - Con botón expandir/colapsar */}
+      {/* Header Section - Más compacto */}
       <div className="mb-2 pb-1.5 border-b" style={{ borderColor: borderColor }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <div 
-              className="p-1 rounded border"
-              style={{ 
-                backgroundColor: `${primaryColor}15`,
-                borderColor: `${primaryColor}30`
-              }}
-            >
-              <MessageSquare className="w-3 h-3" style={{ color: accentColor }} />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-800 tracking-tight">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" style={{ color: accentColor }} />
+            <h3 className="text-sm font-semibold text-gray-800">
               Aportes
             </h3>
             {aportes.length > 0 && (
-              <span className="text-[10px] font-medium text-gray-500">
+              <span className="text-xs text-gray-500">
                 ({aportes.length})
               </span>
             )}
           </div>
           {aportes.length > 0 && (
             <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors"
-              style={{ color: accentColor }}
+              onClick={() => {
+                const newExpanded = !isExpanded;
+                setIsExpanded(newExpanded);
+                if (onExpandedChange) {
+                  onExpandedChange(newExpanded);
+                }
+              }}
+              className="text-xs text-gray-600 hover:text-gray-900 px-2 py-0.5 rounded hover:bg-gray-100 transition-colors"
             >
-              {isExpanded ? 'Ver menos' : `Ver todos (${aportes.length})`}
+              {isExpanded ? 'Ocultar' : 'Ver todos'}
             </button>
           )}
         </div>
       </div>
 
-      {/* Aportes List - Con altura limitada cuando está colapsado, scroll interno cuando expandido */}
-      <div className={`space-y-1.5 overflow-y-auto pr-2 custom-scrollbar mb-2 transition-all duration-300 ${
-        isExpanded ? 'max-h-[500px]' : 'max-h-[80px]'
+      {/* Aportes List - Altura ajustable */}
+      <div className={`overflow-y-auto pr-2 custom-scrollbar mb-2 transition-all duration-300 ${
+        isExpanded ? 'max-h-[400px] space-y-2' : 'max-h-[100px] space-y-1'
       }`}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8">
@@ -431,53 +429,42 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
             return (
               <div
                 key={aporte.id}
-                className="group rounded-lg p-2 shadow-sm border transition-all duration-200"
+                className="group rounded-lg p-2 border transition-all duration-200"
                 style={{
-                  animation: `fadeInUp 0.3s ease-out ${index * 0.05}s both`,
                   background: commentGradient,
                   borderColor: borderColor
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = accentColor;
-                  e.currentTarget.style.boxShadow = `0 2px 8px ${primaryColor}20`;
+                  e.currentTarget.style.boxShadow = `0 1px 4px ${primaryColor}15`;
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.borderColor = borderColor;
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
-                {/* User Header - Más compacto, siempre visible */}
-                <div className="flex items-start justify-between gap-3 mb-2">
+                {/* User Header - Compacto en línea */}
+                <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div className="relative flex-shrink-0">
-                      <div 
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shadow-sm ring-1"
-                        style={{
-                          background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                          ringColor: borderColor
-                        }}
-                      >
-                        {userInitials}
-                      </div>
+                    <div 
+                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0"
+                      style={{
+                        background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+                      }}
+                    >
+                      {userInitials}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold text-gray-900 truncate">
-                          {userName}
-                        </p>
+                    <p className="text-xs font-medium text-gray-900 truncate">
+                      {userName}
+                    </p>
+                    <span className="text-[10px] text-gray-400">•</span>
+                    <span className="text-[10px] text-gray-500">{formatDate(aporte.created_at)}</span>
+                    {isEdited && (
+                      <>
                         <span className="text-[10px] text-gray-400">•</span>
-                        <div className="flex items-center gap-1 text-[10px] text-gray-500">
-                          <Clock className="w-3 h-3" />
-                          <span>{formatDate(aporte.created_at)}</span>
-                        </div>
-                        {isEdited && (
-                          <>
-                            <span className="text-[10px] text-gray-400">•</span>
-                            <span className="text-[10px] text-gray-400 italic">editado</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                        <span className="text-[10px] text-gray-400 italic">editado</span>
+                      </>
+                    )}
                   </div>
 
                   {isOwner && !isEditing && (
@@ -582,8 +569,8 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
                         </div>
                       </div>
                     ) : (
-                      <div className="ml-9">
-                        <p className="text-gray-800 whitespace-pre-wrap break-words leading-relaxed text-xs">
+                      <div className="ml-8">
+                        <p className="text-gray-700 whitespace-pre-wrap break-words leading-relaxed text-xs">
                           {aporte.content}
                         </p>
                       </div>
@@ -594,85 +581,77 @@ export function AportesSection({ postId, userProfiles, postColors = [] }: Aporte
         ) : null}
       </div>
 
-      {/* New Aporte Form - Después de la lista, siempre visible */}
+      {/* New Aporte Form - Compacto y limpio */}
       {user ? (
-        <form onSubmit={handleSubmit} className="mt-1.5">
-          <div 
-            className="rounded-lg p-2 border shadow-sm"
-            style={{
-              background: commentGradient,
-              borderColor: borderColor
-            }}
-          >
-            <div className="flex items-start gap-1.5">
-              <div 
-                className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shadow-sm flex-shrink-0"
-                style={{
-                  background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+        <form onSubmit={handleSubmit} className="mt-2">
+          <div className="flex items-start gap-2">
+            <div 
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
+              style={{
+                background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`
+              }}
+            >
+              {getUserInitials(user.id)}
+            </div>
+            <div className="flex-1">
+              <textarea
+                ref={textareaRef}
+                value={newAporte}
+                onChange={(e) => {
+                  setNewAporte(e.target.value);
+                  handleTextareaResize(e.target);
                 }}
-              >
-                {getUserInitials(user.id)}
-              </div>
-              <div className="flex-1">
-                <textarea
-                  ref={textareaRef}
-                  value={newAporte}
-                  onChange={(e) => {
-                    setNewAporte(e.target.value);
-                    handleTextareaResize(e.target);
-                  }}
-                  placeholder="Comparte tu pensamiento..."
-                  className="w-full px-2 py-1.5 border rounded-lg focus:ring-2 outline-none resize-none bg-white text-gray-900 text-xs leading-relaxed placeholder:text-gray-400 transition-all"
-                  style={{
-                    borderColor: `${primaryColor}60`,
-                    focusRingColor: `${primaryColor}30`,
-                    maxHeight: '60px'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = accentColor;
-                    e.target.style.boxShadow = `0 0 0 2px ${accentColor}30`;
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = `${primaryColor}60`;
-                    e.target.style.boxShadow = 'none';
-                  }}
-                  rows={1}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                      e.preventDefault();
-                      if (!submitting && newAporte.trim()) {
-                        handleSubmit(e as any);
-                      }
-                    }
-                  }}
-                />
-                <div className="flex items-center justify-end mt-1.5">
-                  <button
-                    type="submit"
-                    disabled={submitting || !newAporte.trim()}
-                    onClick={(e) => {
-                      e.preventDefault();
+                placeholder="Escribe un comentario..."
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 outline-none resize-none bg-white text-gray-900 text-sm leading-relaxed placeholder:text-gray-400 transition-all"
+                style={{
+                  borderColor: `${primaryColor}50`,
+                  focusRingColor: `${primaryColor}30`,
+                  maxHeight: '80px'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = accentColor;
+                  e.target.style.boxShadow = `0 0 0 2px ${accentColor}25`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = `${primaryColor}50`;
+                  e.target.style.boxShadow = 'none';
+                }}
+                rows={2}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    if (!submitting && newAporte.trim()) {
                       handleSubmit(e as any);
-                    }}
-                    className="px-3 py-1 text-[10px] font-semibold text-white rounded-lg hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 disabled:hover:shadow-none"
-                    style={{
-                      background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
-                      fontWeight: '600'
-                    }}
-                  >
-                    {submitting ? (
-                      <>
-                        <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        <span style={{ color: '#ffffff' }}>Enviando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-2.5 h-2.5" />
-                        <span style={{ color: '#ffffff', fontWeight: '600' }}>Publicar</span>
-                      </>
-                    )}
-                  </button>
-                </div>
+                    }
+                  }
+                }}
+              />
+              <div className="flex items-center justify-end mt-2">
+                <button
+                  type="submit"
+                  disabled={submitting || !newAporte.trim()}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleSubmit(e as any);
+                  }}
+                  className="px-4 py-1.5 text-xs font-semibold text-white rounded-lg hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1.5"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})`,
+                    fontWeight: '600'
+                  }}
+                >
+                  {submitting ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Enviando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Publicar</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
