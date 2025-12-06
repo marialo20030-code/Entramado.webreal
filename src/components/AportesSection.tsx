@@ -397,13 +397,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
             </div>
             <p className="mt-2 text-xs font-medium text-gray-500">Cargando...</p>
           </div>
-        ) : aportes.length === 0 ? (
-          <div className="text-center py-4 px-4">
-            <p className="text-xs text-gray-500">
-              Aún no hay aportes.
-            </p>
-          </div>
-        ) : (
+        ) : aportes.length > 0 ? (
           visibleAportes.map((aporte, index) => {
             const isOwner = user && aporte.user_id === user.id;
             const isEditing = editingId === aporte.id;
@@ -574,7 +568,7 @@ export function AportesSection({ postId, userProfiles, postColors = [], onExpand
               </div>
             );
           })
-        )}
+        ) : null}
       </div>
 
       {/* New Aporte Form - Después de la lista, siempre visible */}
