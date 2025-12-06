@@ -12,12 +12,7 @@ import {
   Palette,
   Highlighter,
   Minus,
-  Smile,
-  Image,
-  Shapes,
-  Square,
-  Circle,
-  Triangle
+  Image
 } from 'lucide-react';
 
 interface RichTextEditorProps {
@@ -62,26 +57,6 @@ const HIGHLIGHT_COLORS = [
   { name: 'Violeta', value: '#e9d5ff' },
 ];
 
-const EMOJIS = [
-  '😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃',
-  '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙',
-  '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔',
-  '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥',
-  '💪', '👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🤟',
-  '🤘', '👌', '👈', '👉', '👆', '👇', '☝️', '👏', '🙌', '🤲',
-  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔',
-  '⭐', '🌟', '✨', '💫', '💥', '💢', '💯', '🔥', '🎉', '🎊',
-];
-
-const SHAPES = [
-  { name: 'Círculo', html: '<span style="display: inline-block; width: 20px; height: 20px; border-radius: 50%; background-color: #2563eb; vertical-align: middle;"></span>' },
-  { name: 'Cuadrado', html: '<span style="display: inline-block; width: 20px; height: 20px; background-color: #2563eb; vertical-align: middle;"></span>' },
-  { name: 'Triángulo', html: '<span style="display: inline-block; width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 20px solid #2563eb; vertical-align: middle;"></span>' },
-  { name: 'Rombo', html: '<span style="display: inline-block; width: 20px; height: 20px; background-color: #2563eb; transform: rotate(45deg); vertical-align: middle;"></span>' },
-  { name: 'Estrella', html: '<span style="font-size: 20px; vertical-align: middle;">★</span>' },
-  { name: 'Corazón', html: '<span style="font-size: 20px; vertical-align: middle; color: #dc2626;">♥</span>' },
-];
-
 export function RichTextEditor({ 
   value, 
   onChange, 
@@ -96,8 +71,6 @@ export function RichTextEditor({
   const [showFontMenu, setShowFontMenu] = useState(false);
   const [showColorMenu, setShowColorMenu] = useState(false);
   const [showHighlightMenu, setShowHighlightMenu] = useState(false);
-  const [showEmojiMenu, setShowEmojiMenu] = useState(false);
-  const [showShapeMenu, setShowShapeMenu] = useState(false);
   const [currentFont, setCurrentFont] = useState(fontFamily);
 
   useEffect(() => {
@@ -499,16 +472,6 @@ export function RichTextEditor({
     setShowHighlightMenu(false);
   };
 
-  const insertEmoji = (emoji: string) => {
-    insertHTML(emoji);
-    setShowEmojiMenu(false);
-  };
-
-  const insertShape = (shape: { name: string; html: string }) => {
-    insertHTML(shape.html);
-    setShowShapeMenu(false);
-  };
-
   const createList = (ordered: boolean) => {
     if (ordered) {
       execCommand('insertOrderedList');
@@ -702,8 +665,6 @@ export function RichTextEditor({
               setShowColorMenu(!showColorMenu);
               setShowHighlightMenu(false);
               setShowFontMenu(false);
-              setShowEmojiMenu(false);
-              setShowShapeMenu(false);
             }}
             className="p-2 rounded hover:bg-gray-300 transition-colors text-gray-700 flex items-center gap-1"
             title="Color de texto"
@@ -737,8 +698,6 @@ export function RichTextEditor({
               setShowHighlightMenu(!showHighlightMenu);
               setShowColorMenu(false);
               setShowFontMenu(false);
-              setShowEmojiMenu(false);
-              setShowShapeMenu(false);
             }}
             className="p-2 rounded hover:bg-gray-300 transition-colors text-gray-700 flex items-center gap-1"
             title="Resaltar texto"
@@ -763,76 +722,6 @@ export function RichTextEditor({
             </div>
           </MenuDropdown>
         </div>
-
-        {/* Emojis */}
-        <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-1 relative menu-dropdown-container">
-          <button
-            type="button"
-            onClick={() => {
-              setShowEmojiMenu(!showEmojiMenu);
-              setShowColorMenu(false);
-              setShowHighlightMenu(false);
-              setShowFontMenu(false);
-              setShowShapeMenu(false);
-            }}
-            className="p-2 rounded hover:bg-gray-300 transition-colors text-gray-700 flex items-center gap-1"
-            title="Insertar emoji"
-          >
-            <Smile size={16} />
-          </button>
-          <MenuDropdown isOpen={showEmojiMenu} onClose={() => setShowEmojiMenu(false)} className="w-64 max-h-80 overflow-y-auto">
-            <div className="p-2">
-              <div className="text-xs font-semibold text-gray-500 mb-2 px-2">Emojis</div>
-              <div className="grid grid-cols-10 gap-1">
-                {EMOJIS.map((emoji, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => insertEmoji(emoji)}
-                    className="p-2 text-lg hover:bg-gray-100 rounded transition-colors"
-                    title={emoji}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </MenuDropdown>
-        </div>
-
-        {/* Formas/Shapes */}
-        <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-1 relative menu-dropdown-container">
-          <button
-            type="button"
-            onClick={() => {
-              setShowShapeMenu(!showShapeMenu);
-              setShowColorMenu(false);
-              setShowHighlightMenu(false);
-              setShowFontMenu(false);
-              setShowEmojiMenu(false);
-            }}
-            className="p-2 rounded hover:bg-gray-300 transition-colors text-gray-700 flex items-center gap-1"
-            title="Insertar formas"
-          >
-            <Shapes size={16} />
-          </button>
-          <MenuDropdown isOpen={showShapeMenu} onClose={() => setShowShapeMenu(false)} className="w-48">
-            <div className="p-2">
-              <div className="text-xs font-semibold text-gray-500 mb-2 px-2">Formas</div>
-              <div className="space-y-1">
-                {SHAPES.map((shape, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => insertShape(shape)}
-                    className="w-full px-3 py-2 text-left text-xs hover:bg-gray-100 rounded transition-colors flex items-center gap-2"
-                    dangerouslySetInnerHTML={{ __html: `${shape.html} ${shape.name}` }}
-                  />
-                ))}
-              </div>
-            </div>
-          </MenuDropdown>
-        </div>
         
         {/* Selector de fuente */}
         <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-1 relative menu-dropdown-container">
@@ -842,8 +731,6 @@ export function RichTextEditor({
               setShowFontMenu(!showFontMenu);
               setShowColorMenu(false);
               setShowHighlightMenu(false);
-              setShowEmojiMenu(false);
-              setShowShapeMenu(false);
             }}
             className="p-2 rounded hover:bg-gray-300 transition-colors text-gray-700 flex items-center gap-1"
             title="Fuente"
@@ -936,21 +823,17 @@ export function RichTextEditor({
               setShowFontMenu(false);
               setShowColorMenu(false);
               setShowHighlightMenu(false);
-              setShowEmojiMenu(false);
-              setShowShapeMenu(false);
               isUserTypingRef.current = false;
             }
           }}
           onClick={() => {
-            if (showFontMenu || showColorMenu || showHighlightMenu || showEmojiMenu || showShapeMenu) {
+            if (showFontMenu || showColorMenu || showHighlightMenu) {
             setTimeout(() => {
               const activeElement = document.activeElement;
                 if (!activeElement || !(activeElement as HTMLElement).closest('.menu-dropdown-container')) {
                 setShowFontMenu(false);
                   setShowColorMenu(false);
                   setShowHighlightMenu(false);
-                  setShowEmojiMenu(false);
-                  setShowShapeMenu(false);
               }
             }, 100);
             }
