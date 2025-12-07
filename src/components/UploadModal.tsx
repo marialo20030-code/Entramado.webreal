@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
-import { X, Upload, Image as ImageIcon, Plus, Lock, Unlock, Link2, Music, Play, BookOpen, Quote, Search } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Upload, Image as ImageIcon, Plus, Lock, Unlock, Link2, Music, Play, BookOpen, Quote, Search, Save, Eye, EyeOff, ChevronDown, ChevronRight, FileText, Clock, CheckCircle2, AlertCircle, Keyboard, Minimize2, Maximize2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { extractImageAspectRatio } from '../lib/colorUtils';
 import { extractSpotifyId, extractYouTubeId, getSpotifyThumbnail, getYouTubeThumbnail, getSpotifyTrackInfo } from '../lib/mediaUtils';
 import { RichTextEditor } from './RichTextEditor';
+import { ToastContainer } from './Toast';
 
 interface Folder {
   id: string;
@@ -43,6 +44,15 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
   const [newFolderName, setNewFolderName] = useState('');
   const [newFolderColor, setNewFolderColor] = useState('#3b82f6');
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>>([]);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved');
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<{ [key: string]: boolean }>({
+    media: false,
+    references: true,
+  });
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const STORAGE_KEY = 'draft_post_autosave';
@@ -52,9 +62,77 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
     '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'
   ];
 
+  // Funciones para estadísticas
+  const getWordCount = useCallback((text: string) => {
+    const plainText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return plainText.length > 0 ? plainText.split(' ').filter(word => word.length > 0).length : 0;
+  }, []);
+
+  const getCharacterCount = useCallback((text: string) => {
+    return text.replace(/<[^>]*>/g, '').length;
+  }, []);
+
+  const getReadingTime = useCallback((wordCount: number) => {
+    const wordsPerMinute = 200;
+    const minutes = Math.ceil(wordCount / wordsPerMinute);
+    return minutes;
+  }, []);
+
+  const getStatistics = useCallback(() => {
+    const titleWords = getWordCount(title);
+    const descriptionWords = getWordCount(description);
+    const totalWords = titleWords + descriptionWords;
+    const totalChars = getCharacterCount(title + description);
+    const readingTime = getReadingTime(totalWords);
+    
+    return {
+      words: totalWords,
+      characters: totalChars,
+      readingTime,
+      titleWords,
+      descriptionWords,
+    };
+  }, [title, description, getWordCount, getCharacterCount, getReadingTime]);
+
+  // Función para agregar toasts
+  const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning') => {
+    const id = Math.random().toString(36).substring(7);
+    setToasts((prev) => [...prev, { id, message, type }]);
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  }, []);
+
+  // Función para validar publicación
+  const getValidationStatus = useCallback(() => {
+    const stats = getStatistics();
+    const hasTitle = title.trim().length > 0;
+    const hasContent = description.trim().length > 0 || stats.descriptionWords > 0;
+    const hasMedia = mediaType === 'image' ? imagePreviews.length > 0 : mediaUrl.trim().length > 0;
+    
+    return {
+      isValid: hasTitle && hasMedia,
+      hasTitle,
+      hasContent,
+      hasMedia,
+      warnings: [] as string[],
+    };
+  }, [title, description, mediaType, imagePreviews, mediaUrl, getStatistics]);
+
+  // Toggle secciones colapsables
+  const toggleSection = useCallback((section: string) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  }, []);
+
   // Función para guardar en localStorage
-  const saveToLocalStorage = () => {
+  const saveToLocalStorage = useCallback(() => {
     if (!user || postToEdit) return; // No guardar si es edición
+    
+    setSaveStatus('saving');
     
     const draftData = {
       title,
@@ -71,10 +149,14 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
     
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(draftData));
+      setTimeout(() => {
+        setSaveStatus('saved');
+      }, 500);
     } catch (e) {
       console.error('Error guardando borrador:', e);
+      setSaveStatus('unsaved');
     }
-  };
+  }, [user, postToEdit, title, description, folderId, mediaType, mediaUrl, imagePreviews, customThumbnail, isPrivate, showMediaOptions]);
 
   // Función para cargar desde localStorage
   const loadFromLocalStorage = () => {
@@ -110,6 +192,10 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
   useEffect(() => {
     if (!isOpen || postToEdit || !user) return;
     
+    if (title || description || imagePreviews.length > 0) {
+      setSaveStatus('unsaved');
+    }
+    
     const interval = setInterval(() => {
       if (title || description || imagePreviews.length > 0) {
         saveToLocalStorage();
@@ -117,7 +203,7 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [title, description, folderId, mediaType, mediaUrl, imagePreviews, customThumbnail, isPrivate, showMediaOptions, isOpen, postToEdit, user]);
+  }, [title, description, folderId, mediaType, mediaUrl, imagePreviews, customThumbnail, isPrivate, showMediaOptions, isOpen, postToEdit, user, saveToLocalStorage]);
 
   // Guardar antes de cerrar la página
   useEffect(() => {
@@ -431,6 +517,7 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
         target: form,
       } as unknown as React.FormEvent<HTMLFormElement>;
       await handleSubmit(syntheticEvent, true);
+      addToast('Borrador guardado correctamente', 'success');
     }
   };
 
@@ -649,6 +736,13 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
 
       // Limpiar localStorage después de publicar o guardar borrador exitosamente
       clearLocalStorage();
+      setSaveStatus('saved');
+      
+      if (isDraft) {
+        addToast('Borrador guardado correctamente', 'success');
+      } else {
+        addToast('Publicación creada exitosamente', 'success');
+      }
       
       setTitle('');
       setDescription('');
@@ -659,8 +753,12 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
       setIsPrivate(false);
       setMediaType('image');
       setMediaUrl('');
-      onSuccess();
-      onClose();
+      
+      // Pequeño delay para que se vea el toast
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 500);
     } catch (err: any) {
       console.error('Error al procesar publicación:', err);
       
@@ -685,37 +783,200 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
         setError('Faltan datos requeridos. Verifica que todos los campos estén completos.');
       } else {
         setError(`Error: ${errorMessage}`);
+        addToast(`Error: ${errorMessage}`, 'error');
       }
     } finally {
       setLoading(false);
+      setSaveStatus('unsaved');
     }
   };
 
+  // Atajos de teclado
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignorar si está escribiendo en un input o textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        // Permitir Ctrl+S incluso en inputs
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          if (!loading) {
+            handleSaveDraft();
+          }
+          return;
+        }
+        // Permitir Ctrl+Enter incluso en inputs
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          if (!loading && title.trim() && (mediaType === 'image' ? imagePreviews.length > 0 : mediaUrl.trim())) {
+            const form = document.getElementById('upload-form') as HTMLFormElement;
+            if (form) {
+              const syntheticEvent = {
+                preventDefault: () => {},
+                currentTarget: form,
+                target: form,
+              } as unknown as React.FormEvent<HTMLFormElement>;
+              handleSubmit(syntheticEvent, false);
+            }
+          }
+          return;
+        }
+        return; // No procesar otros atajos si está escribiendo
+      }
+
+      // Ctrl/Cmd + S para guardar borrador
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (!loading) {
+          handleSaveDraft();
+        }
+      }
+      // Ctrl/Cmd + Enter para publicar
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (!loading && title.trim() && (mediaType === 'image' ? imagePreviews.length > 0 : mediaUrl.trim())) {
+          const form = document.getElementById('upload-form') as HTMLFormElement;
+          if (form) {
+            const syntheticEvent = {
+              preventDefault: () => {},
+              currentTarget: form,
+              target: form,
+            } as unknown as React.FormEvent<HTMLFormElement>;
+            handleSubmit(syntheticEvent, false);
+          }
+        }
+      }
+      // Ctrl/Cmd + K para toggle modo de enfoque
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsFocusMode((prev) => !prev);
+      }
+      // Ctrl/Cmd + B para toggle sidebar
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault();
+        setSidebarCollapsed((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, loading, title, mediaType, imagePreviews, mediaUrl]);
+
+  const stats = getStatistics();
+  const validation = getValidationStatus();
+
   return (
     <div className="fixed inset-0 bg-[#f5f1e8] z-50 flex flex-col" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.02) 1px, transparent 0)', backgroundSize: '40px 40px' }}>
-      {/* Barra superior */}
-      <div className="bg-[#f5f1e8] border-b border-gray-300 flex items-center justify-between px-4 py-2 flex-shrink-0 shadow-sm">
-        <div className="flex items-center gap-4">
+      {/* Barra superior mejorada */}
+      <div className="bg-[#f5f1e8] border-b border-gray-300 flex items-center justify-between px-4 py-2.5 flex-shrink-0 shadow-sm">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-700"
+            className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-700 flex-shrink-0"
           >
             <X size={20} />
           </button>
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             <span className="text-sm font-medium text-gray-700">
               {postToEdit ? 'Editar publicación' : 'Nueva publicación'}
             </span>
             {showRestoredMessage && (
-              <span className="text-xs text-blue-400 mt-1">
+              <span className="text-xs text-blue-400 mt-0.5">
                 ✓ Borrador restaurado automáticamente
               </span>
             )}
           </div>
+
+          {/* Estadísticas */}
+          <div className="hidden md:flex items-center gap-4 ml-4 text-xs text-gray-600">
+            <div className="flex items-center gap-1.5">
+              <FileText size={14} className="text-gray-500" />
+              <span className="font-medium">{stats.words}</span>
+              <span className="text-gray-500">palabras</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium">{stats.characters}</span>
+              <span className="text-gray-500">caracteres</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock size={14} className="text-gray-500" />
+              <span className="font-medium">{stats.readingTime}</span>
+              <span className="text-gray-500">min</span>
+            </div>
+            {mediaType === 'image' && imagePreviews.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <ImageIcon size={14} className="text-gray-500" />
+                <span className="font-medium">{imagePreviews.length}</span>
+                <span className="text-gray-500">imágenes</span>
+              </div>
+            )}
+          </div>
+
+          {/* Indicador de guardado */}
+          <div className="hidden md:flex items-center gap-2 ml-auto mr-4">
+            {saveStatus === 'saving' && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                <span>Guardando...</span>
+              </div>
+            )}
+            {saveStatus === 'saved' && (
+              <div className="flex items-center gap-1.5 text-xs text-green-600">
+                <CheckCircle2 size={14} />
+                <span>Guardado</span>
+              </div>
+            )}
+            {saveStatus === 'unsaved' && (
+              <div className="flex items-center gap-1.5 text-xs text-amber-600">
+                <AlertCircle size={14} />
+                <span>Sin guardar</span>
+              </div>
+            )}
+          </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          <div className="flex-1 relative">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Estado de validación */}
+          {!postToEdit && (
+            <div className="hidden lg:flex items-center gap-2 mr-2">
+              {validation.isValid ? (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+                  <CheckCircle2 size={12} />
+                  <span>Listo para publicar</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
+                  <AlertCircle size={12} />
+                  <span>Falta contenido</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Botón modo de enfoque */}
+          <button
+            type="button"
+            onClick={() => setIsFocusMode(!isFocusMode)}
+            className={`p-2 rounded-lg transition-all ${isFocusMode ? 'bg-blue-100 text-blue-600' : 'bg-[#fefcf8] text-gray-700 hover:bg-[#faf8f3] border border-gray-300'}`}
+            title="Modo de enfoque (Ctrl+K)"
+          >
+            {isFocusMode ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
+          </button>
+
+          {/* Botón atajos */}
+          <button
+            type="button"
+            onClick={() => setShowShortcuts(!showShortcuts)}
+            className="p-2 bg-[#fefcf8] text-gray-700 hover:bg-[#faf8f3] border border-gray-300 rounded-lg transition-all"
+            title="Ver atajos de teclado"
+          >
+            <Keyboard size={18} />
+          </button>
+
+          <div className="flex-1 relative max-w-xs">
             <select
               value={folderId}
               onChange={(e) => setFolderId(e.target.value)}
@@ -841,8 +1102,40 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
         </div>
       </div>
 
+      {/* Modal de atajos de teclado */}
+      {showShortcuts && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center" onClick={() => setShowShortcuts(false)}>
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Atajos de teclado</h3>
+              <button onClick={() => setShowShortcuts(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                <span className="text-gray-700">Guardar borrador</span>
+                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Ctrl+S</kbd>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                <span className="text-gray-700">Publicar</span>
+                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Ctrl+Enter</kbd>
+              </div>
+              <div className="flex items-center justify-between py-2 border-b border-gray-200">
+                <span className="text-gray-700">Modo de enfoque</span>
+                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Ctrl+K</kbd>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-gray-700">Mostrar/ocultar sidebar</span>
+                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Ctrl+B</kbd>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Contenido principal */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className={`flex-1 flex overflow-hidden transition-all duration-300 ${isFocusMode ? 'flex-col' : ''}`}>
         {/* Editor principal - estilo Google Docs */}
         <form 
           id="upload-form"
@@ -885,10 +1178,46 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
           </div>
         </form>
 
-        {/* Sidebar derecho - Opciones de multimedia */}
-        <div className="w-80 bg-[#f5f1e8] border-l border-gray-300 overflow-y-auto flex flex-col shadow-sm">
-          <div className="p-4 space-y-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Multimedia</h3>
+        {/* Sidebar derecho - Opciones de multimedia con secciones colapsables */}
+        <div className={`bg-[#f5f1e8] border-l border-gray-300 overflow-y-auto flex flex-col shadow-sm transition-all duration-300 ${
+          sidebarCollapsed ? 'w-0 border-0' : isFocusMode ? 'w-full absolute inset-0 z-40' : 'w-80'
+        }`}>
+          {!sidebarCollapsed && (
+            <div className="p-4 space-y-4">
+              {/* Botón para colapsar sidebar */}
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Configuración</h3>
+                <button
+                  type="button"
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="p-1 hover:bg-gray-200 rounded transition-colors text-gray-500"
+                  title="Ocultar sidebar (Ctrl+B)"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Sección Multimedia - Colapsable */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => toggleSection('media')}
+                  className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <ImageIcon size={16} className="text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">Multimedia</span>
+                    {imagePreviews.length > 0 || mediaUrl.trim() ? (
+                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                        {mediaType === 'image' ? imagePreviews.length : 1}
+                      </span>
+                    ) : null}
+                  </div>
+                  {collapsedSections.media ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                </button>
+                
+                {!collapsedSections.media && (
+                  <div className="px-3 pb-3 space-y-3 border-t border-gray-200">
             
             {/* Opciones de tipo de contenido */}
             {!showMediaOptions ? (
@@ -1101,90 +1430,134 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
                 )}
               </div>
             )}
+                  </div>
+                )}
+              </div>
 
-            {/* Separador */}
-            <div className="border-t border-gray-300 my-4"></div>
-
-            {/* Referencias a publicaciones */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Referencias</h3>
+              {/* Sección Referencias - Colapsable */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
                 <button
                   type="button"
                   onClick={() => {
-                    setShowPostReferences(!showPostReferences);
-                    if (!showPostReferences) {
+                    toggleSection('references');
+                    if (!collapsedSections.references && !showPostReferences) {
+                      setShowPostReferences(true);
                       loadRecentPosts();
                     }
                   }}
-                  className="text-xs text-gray-600 hover:text-gray-800"
+                  className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
                 >
-                  {showPostReferences ? 'Ocultar' : 'Mostrar'}
-                </button>
-              </div>
-
-              {showPostReferences && (
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Search size={14} className="absolute left-2 top-2.5 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Buscar publicaciones..."
-                      value={postSearchQuery}
-                      onChange={(e) => setPostSearchQuery(e.target.value)}
-                      className="w-full pl-8 pr-2 py-1.5 text-xs bg-[#fefcf8] border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-400 outline-none"
-                    />
+                  <div className="flex items-center gap-2">
+                    <Link2 size={16} className="text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">Referencias</span>
+                    {referencedPosts.length > 0 && (
+                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                        {referencedPosts.length}
+                      </span>
+                    )}
                   </div>
+                  {collapsedSections.references ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                </button>
+                
+                {!collapsedSections.references && (
+                  <div className="px-3 pb-3 space-y-3 border-t border-gray-200">
 
-                  {availablePosts.length > 0 && (
-                    <div className="max-h-40 overflow-y-auto space-y-1">
-                      {availablePosts
-                        .filter(post => !referencedPosts.find(p => p.id === post.id))
-                        .map(post => (
-                          <button
-                            key={post.id}
-                            type="button"
-                            onClick={() => addPostReference(post)}
-                            className="w-full p-2 bg-[#fefcf8] border border-gray-300 rounded text-left hover:bg-[#faf8f3] transition-all text-xs"
-                          >
-                            <div className="flex items-center gap-2">
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search size={14} className="absolute left-2 top-2.5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Buscar publicaciones..."
+                          value={postSearchQuery}
+                          onChange={(e) => setPostSearchQuery(e.target.value)}
+                          className="w-full pl-8 pr-2 py-1.5 text-xs bg-[#fefcf8] border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-400 outline-none"
+                        />
+                      </div>
+
+                      {availablePosts.length > 0 && (
+                        <div className="max-h-40 overflow-y-auto space-y-1">
+                          {availablePosts
+                            .filter(post => !referencedPosts.find(p => p.id === post.id))
+                            .map(post => (
+                              <button
+                                key={post.id}
+                                type="button"
+                                onClick={() => addPostReference(post)}
+                                className="w-full p-2 bg-[#fefcf8] border border-gray-300 rounded text-left hover:bg-[#faf8f3] transition-all text-xs"
+                              >
+                                <div className="flex items-center gap-2">
+                                  {post.image_url && (
+                                    <img src={post.image_url} alt={post.title} className="w-8 h-8 object-cover rounded" />
+                                  )}
+                                  <span className="flex-1 truncate">{post.title}</span>
+                                </div>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+
+                      {referencedPosts.length > 0 && (
+                        <div className="space-y-1 mt-2">
+                          <p className="text-xs text-gray-600 font-medium">Referencias seleccionadas:</p>
+                          {referencedPosts.map(post => (
+                            <div key={post.id} className="flex items-center gap-2 p-2 bg-[#faf8f3] border border-gray-300 rounded text-xs">
                               {post.image_url && (
-                                <img src={post.image_url} alt={post.title} className="w-8 h-8 object-cover rounded" />
+                                <img src={post.image_url} alt={post.title} className="w-6 h-6 object-cover rounded" />
                               )}
                               <span className="flex-1 truncate">{post.title}</span>
+                              <button
+                                type="button"
+                                onClick={() => removePostReference(post.id)}
+                                className="text-gray-400 hover:text-gray-600"
+                              >
+                                <X size={12} />
+                              </button>
                             </div>
-                          </button>
-                        ))}
-                    </div>
-                  )}
-
-                  {referencedPosts.length > 0 && (
-                    <div className="space-y-1 mt-2">
-                      <p className="text-xs text-gray-600 font-medium">Referencias seleccionadas:</p>
-                      {referencedPosts.map(post => (
-                        <div key={post.id} className="flex items-center gap-2 p-2 bg-[#faf8f3] border border-gray-300 rounded text-xs">
-                          {post.image_url && (
-                            <img src={post.image_url} alt={post.title} className="w-6 h-6 object-cover rounded" />
-                          )}
-                          <span className="flex-1 truncate">{post.title}</span>
-                          <button
-                            type="button"
-                            onClick={() => removePostReference(post.id)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <X size={12} />
-                          </button>
+                          ))}
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Checklist de validación */}
+              {!postToEdit && (
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Estado de publicación</p>
+                  <div className="space-y-1.5">
+                    <div className={`flex items-center gap-2 text-xs ${validation.hasTitle ? 'text-green-600' : 'text-gray-400'}`}>
+                      {validation.hasTitle ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                      <span>Título requerido</span>
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs ${validation.hasMedia ? 'text-green-600' : 'text-gray-400'}`}>
+                      {validation.hasMedia ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                      <span>Multimedia requerido</span>
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs ${validation.hasContent ? 'text-green-600' : 'text-amber-600'}`}>
+                      {validation.hasContent ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                      <span>Contenido (recomendado)</span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-
-          </div>
+          )}
+          {sidebarCollapsed && (
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(false)}
+              className="fixed right-4 top-1/2 transform -translate-y-1/2 p-2 bg-white border border-gray-300 rounded-l-lg shadow-lg hover:bg-gray-50 transition-colors z-30"
+              title="Mostrar sidebar (Ctrl+B)"
+            >
+              <ChevronRight size={18} className="text-gray-600" />
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   );
 }
