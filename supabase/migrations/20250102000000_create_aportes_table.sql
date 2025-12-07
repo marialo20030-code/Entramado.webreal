@@ -78,3 +78,5 @@ CREATE POLICY "Users can only view their own folders"
   USING (auth.uid() = created_by);
 
 
+
+

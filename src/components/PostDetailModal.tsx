@@ -461,15 +461,16 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                       style={{
                         fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
                         fontSize: '16px',
-                        lineHeight: '1.8',
+                        lineHeight: '28.8px',
                         backgroundColor: 'transparent',
                       }}
                     />
                     <style>{`
                       .post-content p {
-                        margin: 8px 0;
+                        margin: 0;
                         padding: 0;
-                        line-height: 1.8;
+                        line-height: 28.8px !important;
+                        min-height: 28.8px;
                       }
                       .post-content p:first-child {
                         margin-top: 0;
@@ -478,11 +479,14 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                         margin-bottom: 0;
                       }
                       .post-content ul, .post-content ol {
-                        margin: 12px 0;
+                        margin: 28.8px 0;
                         padding-left: 2em;
                       }
                       .post-content li {
-                        margin: 4px 0;
+                        margin: 0;
+                        padding: 0;
+                        line-height: 28.8px !important;
+                        min-height: 28.8px;
                       }
                       .post-content strong {
                         font-weight: 600;
@@ -500,8 +504,8 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                         overflow-x: auto;
                         font-family: 'Courier New', monospace;
                         font-size: 14px;
-                        line-height: 1.5;
-                        margin: 12px 0;
+                        line-height: 28.8px !important;
+                        margin: 28.8px 0;
                         white-space: pre-wrap;
                         word-wrap: break-word;
                       }
@@ -520,27 +524,35 @@ export function PostDetailModal({ post, onClose, onDelete, onMoveToFolder, onPos
                       .post-content blockquote {
                         border-left: 4px solid #ddd;
                         padding-left: 16px;
-                        margin: 12px 0;
+                        margin: 28.8px 0;
                         color: #666;
                         font-style: italic;
+                        line-height: 28.8px !important;
+                      }
+                      .post-content blockquote p {
+                        margin: 0;
+                        line-height: 28.8px !important;
                       }
                       .post-content h1 {
                         font-size: 2em;
                         font-weight: 600;
-                        margin: 24px 0 16px 0;
-                        line-height: 1.3;
+                        margin: 57.6px 0 28.8px 0;
+                        line-height: 57.6px !important;
                       }
                       .post-content h2 {
                         font-size: 1.5em;
                         font-weight: 600;
-                        margin: 20px 0 12px 0;
-                        line-height: 1.3;
+                        margin: 43.2px 0 28.8px 0;
+                        line-height: 43.2px !important;
                       }
                       .post-content h3 {
                         font-size: 1.2em;
                         font-weight: 600;
-                        margin: 16px 0 8px 0;
-                        line-height: 1.3;
+                        margin: 28.8px 0 28.8px 0;
+                        line-height: 28.8px !important;
+                      }
+                      .post-content span, .post-content div, .post-content em, .post-content strong, .post-content u, .post-content del {
+                        line-height: 28.8px !important;
                       }
                       .post-content a {
                         color: #2563eb;

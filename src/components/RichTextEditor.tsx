@@ -263,7 +263,10 @@ export function RichTextEditor({
     // Enlaces [text](url)
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #2563eb; text-decoration: underline;">$1</a>');
     
-    // Convertir líneas a párrafos si no tienen tags HTML
+    // Convertir líneas a párrafos si no tienen tags HTML - Con line-height correcto
+    const fontSizeNum = parseFloat(fontSize) || 16;
+    const lineHeightValue = fontSizeNum * 1.8; // Mismo que las líneas del cuaderno
+    
     const finalLines = html.split('\n');
     const finalResult: string[] = [];
     let currentParagraph: string[] = [];
@@ -274,7 +277,7 @@ export function RichTextEditor({
         if (currentParagraph.length > 0) {
           const paraText = currentParagraph.join(' ');
           if (paraText && !paraText.match(/^<[^>]+>/)) {
-            finalResult.push(`<p style="margin: 8px 0; line-height: 1.6;">${paraText}</p>`);
+            finalResult.push(`<p style="margin: 0; padding: 0; line-height: ${lineHeightValue}px !important; min-height: ${lineHeightValue}px;">${paraText}</p>`);
           } else {
             finalResult.push(paraText);
           }
@@ -297,7 +300,7 @@ export function RichTextEditor({
     if (currentParagraph.length > 0) {
       const paraText = currentParagraph.join(' ');
       if (paraText && !paraText.match(/^<[^>]+>/)) {
-        finalResult.push(`<p style="margin: 8px 0; line-height: 1.6;">${paraText}</p>`);
+        finalResult.push(`<p style="margin: 0; padding: 0; line-height: ${lineHeightValue}px !important; min-height: ${lineHeightValue}px;">${paraText}</p>`);
       } else {
         finalResult.push(paraText);
       }
@@ -306,61 +309,138 @@ export function RichTextEditor({
     return finalResult.join('\n');
   };
 
-  // Función para procesar y limpiar HTML pegado
+  // Función para procesar y limpiar HTML pegado - Aplicar line-height correcto para alinearse con las líneas del cuaderno
   const processPastedHTML = (html: string): string => {
+    const fontSizeNum = parseFloat(fontSize) || 16;
+    const lineHeightValue = fontSizeNum * 1.8; // Mismo cálculo que las líneas del cuaderno
+    
     // Crear un elemento temporal para procesar el HTML
     const temp = document.createElement('div');
     temp.innerHTML = html;
     
-    // Preservar bloques de código y pre
-    const codeBlocks = temp.querySelectorAll('pre, code');
-    codeBlocks.forEach(block => {
-      if (block.tagName === 'PRE') {
-        block.setAttribute('style', 
-          'background: #f4f4f4; padding: 12px; border-radius: 6px; overflow-x: auto; ' +
-          'font-family: "Courier New", monospace; font-size: 14px; line-height: 1.5; margin: 12px 0;'
-        );
-      } else if (block.tagName === 'CODE' && block.parentElement?.tagName !== 'PRE') {
-        block.setAttribute('style', 
-          'background: #f4f4f4; padding: 2px 6px; border-radius: 3px; ' +
-          'font-family: monospace; font-size: 0.9em;'
-        );
-      }
-    });
-    
-    // Preservar blockquotes
-    const blockquotes = temp.querySelectorAll('blockquote');
-    blockquotes.forEach(quote => {
-      quote.setAttribute('style', 
-        'border-left: 4px solid #ddd; padding-left: 16px; margin: 12px 0; ' +
-        'color: #666; font-style: italic;'
+    // Aplicar line-height a todos los párrafos
+    const paragraphs = temp.querySelectorAll('p');
+    paragraphs.forEach(p => {
+      const currentStyle = p.getAttribute('style') || '';
+      p.setAttribute('style', 
+        `${currentStyle}; line-height: ${lineHeightValue}px !important; margin: 0; padding: 0; min-height: ${lineHeightValue}px;`
+          .replace(/;\s*;/g, ';').trim()
       );
     });
     
-    // Mantener listas con estilos
+    // Aplicar line-height a todos los elementos de lista
+    const listItems = temp.querySelectorAll('li');
+    listItems.forEach(li => {
+      const currentStyle = li.getAttribute('style') || '';
+      li.setAttribute('style', 
+        `${currentStyle}; line-height: ${lineHeightValue}px !important; margin: 0; padding: 0; min-height: ${lineHeightValue}px;`
+          .replace(/;\s*;/g, ';').trim()
+      );
+    });
+    
+    // Ajustar márgenes de listas para que sean múltiplos del line-height
     const lists = temp.querySelectorAll('ul, ol');
     lists.forEach(list => {
+      const currentStyle = list.getAttribute('style') || '';
+      const marginValue = `${lineHeightValue}px`;
       if (list.tagName === 'UL') {
-        list.setAttribute('style', 'margin: 12px 0; padding-left: 2em; list-style-type: disc;');
+        list.setAttribute('style', 
+          `${currentStyle}; margin: ${marginValue} 0; padding-left: 2em; list-style-type: disc;`
+            .replace(/;\s*;/g, ';').trim()
+        );
       } else {
-        list.setAttribute('style', 'margin: 12px 0; padding-left: 2em;');
+        list.setAttribute('style', 
+          `${currentStyle}; margin: ${marginValue} 0; padding-left: 2em;`
+            .replace(/;\s*;/g, ';').trim()
+        );
       }
+    });
+    
+    // Preservar bloques de código y pre (mantener su line-height pero ajustar márgenes)
+    const codeBlocks = temp.querySelectorAll('pre, code');
+    codeBlocks.forEach(block => {
+      if (block.tagName === 'PRE') {
+        const currentStyle = block.getAttribute('style') || '';
+        block.setAttribute('style', 
+          `background: #f4f4f4; padding: 12px; border-radius: 6px; overflow-x: auto; ` +
+          `font-family: "Courier New", monospace; font-size: 14px; ` +
+          `line-height: ${lineHeightValue}px !important; margin: ${lineHeightValue}px 0;`
+        );
+      } else if (block.tagName === 'CODE' && block.parentElement?.tagName !== 'PRE') {
+        const currentStyle = block.getAttribute('style') || '';
+        block.setAttribute('style', 
+          `${currentStyle}; background: #f4f4f4; padding: 2px 6px; border-radius: 3px; ` +
+          `font-family: monospace; font-size: 0.9em; line-height: ${lineHeightValue}px !important;`
+            .replace(/;\s*;/g, ';').trim()
+        );
+      }
+    });
+    
+    // Preservar blockquotes con line-height correcto
+    const blockquotes = temp.querySelectorAll('blockquote');
+    blockquotes.forEach(quote => {
+      const currentStyle = quote.getAttribute('style') || '';
+      quote.setAttribute('style', 
+        `border-left: 4px solid #ddd; padding-left: 16px; margin: ${lineHeightValue}px 0; ` +
+        `color: #666; font-style: italic; line-height: ${lineHeightValue}px !important;`
+      );
+      // Aplicar line-height también a los párrafos dentro del blockquote
+      const blockquotePs = quote.querySelectorAll('p');
+      blockquotePs.forEach(p => {
+        const pStyle = p.getAttribute('style') || '';
+        p.setAttribute('style', 
+          `${pStyle}; line-height: ${lineHeightValue}px !important; margin: 0;`
+            .replace(/;\s*;/g, ';').trim()
+        );
+      });
+    });
+    
+    // Ajustar títulos con line-height y márgenes correctos
+    const headings = temp.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach(heading => {
+      const tagName = heading.tagName.toLowerCase();
+      const currentStyle = heading.getAttribute('style') || '';
+      let lineHeightHeading = lineHeightValue;
+      let marginTop = lineHeightValue;
+      let marginBottom = lineHeightValue;
+      
+      if (tagName === 'h1') {
+        lineHeightHeading = lineHeightValue * 2;
+        marginTop = lineHeightValue * 2;
+      } else if (tagName === 'h2') {
+        lineHeightHeading = lineHeightValue * 1.5;
+        marginTop = lineHeightValue * 1.5;
+      }
+      
+      heading.setAttribute('style', 
+        `${currentStyle}; line-height: ${lineHeightHeading}px !important; ` +
+        `margin: ${marginTop}px 0 ${marginBottom}px 0; font-weight: 600;`
+          .replace(/;\s*;/g, ';').trim()
+      );
     });
     
     // Mantener enlaces
     const links = temp.querySelectorAll('a');
     links.forEach(link => {
-      link.setAttribute('style', 'color: #2563eb; text-decoration: underline;');
+      const currentStyle = link.getAttribute('style') || '';
+      link.setAttribute('style', 
+        `${currentStyle}; color: #2563eb; text-decoration: underline; line-height: ${lineHeightValue}px !important;`
+          .replace(/;\s*;/g, ';').trim()
+      );
     });
     
-    // Limpiar estilos innecesarios pero preservar importantes
-    const allElements = temp.querySelectorAll('*');
-    allElements.forEach(el => {
-      // Preservar color, background-color, font-weight, font-style importantes
-      const style = el.getAttribute('style') || '';
-      if (!style.includes('background') && !style.includes('color') && 
-          !style.includes('font-weight') && !style.includes('font-style')) {
-        el.removeAttribute('style');
+    // Aplicar line-height a todos los demás elementos de texto
+    const textElements = temp.querySelectorAll('span, div, em, strong, u, del');
+    textElements.forEach(el => {
+      // Solo aplicar si no tiene un padre que ya tenga line-height aplicado
+      if (!el.closest('pre, code, blockquote, h1, h2, h3, h4, h5, h6')) {
+        const currentStyle = el.getAttribute('style') || '';
+        if (!currentStyle.includes('line-height')) {
+          el.setAttribute('style', 
+            `${currentStyle}; line-height: ${lineHeightValue}px !important;`
+              .replace(/;\s*;/g, ';').trim()
+          );
+        }
       }
     });
     
@@ -625,10 +705,10 @@ export function RichTextEditor({
     );
   };
 
-  // Calcular líneas del cuaderno
+  // Calcular líneas del cuaderno - El line-height debe coincidir EXACTAMENTE con el espaciado de las líneas
   const fontSizeNum = parseFloat(fontSize) || 16;
-  const lineHeight = fontSizeNum * 1.8; // Altura de línea
-  const lineSpacing = 8; // Espacio entre líneas
+  const lineHeightMultiplier = 1.8; // Multiplicador para el line-height
+  const lineHeight = fontSizeNum * lineHeightMultiplier; // Altura de línea exacta (ej: 16 * 1.8 = 28.8px)
 
   return (
     <div className="w-full">
@@ -876,7 +956,8 @@ export function RichTextEditor({
         [contenteditable] p {
           margin: 0;
           padding: 0;
-          line-height: ${lineHeight}px;
+          line-height: ${lineHeight}px !important;
+          min-height: ${lineHeight}px;
         }
         [contenteditable] p:first-child {
           margin-top: 0;
@@ -885,11 +966,14 @@ export function RichTextEditor({
           margin-bottom: 0;
         }
         [contenteditable] ul, [contenteditable] ol {
-          margin: 0.8em 0;
+          margin: ${lineHeight}px 0;
           padding-left: 2em;
         }
         [contenteditable] li {
-          margin: 0.3em 0;
+          margin: 0;
+          padding: 0;
+          line-height: ${lineHeight}px !important;
+          min-height: ${lineHeight}px;
         }
         [contenteditable] pre {
           background: #f4f4f4;
@@ -918,24 +1002,32 @@ export function RichTextEditor({
         [contenteditable] blockquote {
           border-left: 4px solid #ddd;
           padding-left: 16px;
-          margin: 12px 0;
+          margin: ${lineHeight}px 0;
           color: #666;
           font-style: italic;
+          line-height: ${lineHeight}px !important;
+        }
+        [contenteditable] blockquote p {
+          margin: 0;
+          line-height: ${lineHeight}px !important;
         }
         [contenteditable] h1 {
           font-size: 2em;
           font-weight: 600;
-          margin: 24px 0 16px 0;
+          margin: ${lineHeight * 2}px 0 ${lineHeight}px 0;
+          line-height: ${lineHeight * 2}px !important;
         }
         [contenteditable] h2 {
           font-size: 1.5em;
           font-weight: 600;
-          margin: 20px 0 12px 0;
+          margin: ${lineHeight * 1.5}px 0 ${lineHeight}px 0;
+          line-height: ${lineHeight * 1.5}px !important;
         }
         [contenteditable] h3 {
           font-size: 1.2em;
           font-weight: 600;
-          margin: 16px 0 8px 0;
+          margin: ${lineHeight}px 0 ${lineHeight}px 0;
+          line-height: ${lineHeight}px !important;
         }
         [contenteditable] a {
           color: #2563eb;
@@ -946,7 +1038,16 @@ export function RichTextEditor({
         }
         [contenteditable] em {
           font-style: italic;
-          line-height: ${lineHeight}px;
+          line-height: ${lineHeight}px !important;
+        }
+        [contenteditable] * {
+          line-height: ${lineHeight}px !important;
+        }
+        [contenteditable] pre {
+          line-height: ${lineHeight}px !important;
+        }
+        [contenteditable] code {
+          line-height: ${lineHeight}px !important;
         }
         [contenteditable] strong {
           font-weight: 700 !important;

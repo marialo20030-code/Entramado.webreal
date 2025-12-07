@@ -120,3 +120,5 @@ Luego puedes asignar un atajo a esta tarea:
 
 **Recomendación:** Usa el **Método 1** con `Ctrl+Alt+B` - es el más simple y funciona bien.
 
+
+

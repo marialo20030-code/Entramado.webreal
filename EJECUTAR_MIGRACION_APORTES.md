@@ -146,3 +146,5 @@ CREATE POLICY "Users can only view their own folders"
 
 **Si marcaste todo** ✅ → **¡Los comentarios deberían funcionar!**
 
+
+
