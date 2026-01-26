@@ -18,12 +18,20 @@ export function Auth({ onReaderMode }: AuthProps) {
   const [resetSent, setResetSent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevenir doble envío del formulario
+    if (isSubmitting || loading) {
+      return;
+    }
+    
     setError('');
     setLoading(true);
+    setIsSubmitting(true);
 
     try {
       if (isSignUp) {
@@ -41,13 +49,25 @@ export function Auth({ onReaderMode }: AuthProps) {
           throw new Error('La contraseña debe tener al menos 6 caracteres');
         }
 
-        // Crear cuenta en Supabase Auth
+        // Crear cuenta en Supabase Auth (SOLO UNA VEZ)
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
-          password
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}`
+          }
         });
 
-        if (signUpError) throw signUpError;
+        if (signUpError) {
+          // Manejar error 429 (rate limiting) específicamente
+          if (signUpError.status === 429 || 
+              signUpError.message?.includes('429') || 
+              signUpError.message?.toLowerCase().includes('rate limit') ||
+              signUpError.message?.toLowerCase().includes('too many requests')) {
+            throw new Error('⏰ Demasiados intentos. Por favor espera 15-20 minutos antes de intentar de nuevo. Usa un email diferente si es posible.');
+          }
+          throw signUpError;
+        }
         
         // Crear perfil de usuario con el nombre y email
         if (data.user) {
@@ -64,8 +84,8 @@ export function Auth({ onReaderMode }: AuthProps) {
           }
         }
         
-        // Llamar a signUp del contexto (aunque ya se hizo arriba, mantener para consistencia)
-        await signUp(email.trim(), password);
+        // NO llamar a signUp del contexto aquí - ya se creó el usuario arriba
+        // El usuario se autenticará automáticamente si no requiere confirmación de email
       } else {
         // Iniciar sesión
         const loginInput = email.trim();
@@ -109,9 +129,21 @@ export function Auth({ onReaderMode }: AuthProps) {
         await signIn(userEmail, password);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al autenticar');
+      // Mejorar mensajes de error para rate limiting
+      if (err instanceof Error) {
+        if (err.message.includes('429') || err.message.toLowerCase().includes('rate limit') || err.message.toLowerCase().includes('too many')) {
+          setError('⏰ Demasiados intentos de registro. Por favor espera 15-20 minutos y usa un email diferente. Esto es una protección de seguridad de Supabase.');
+        } else if (err.message.includes('User already registered') || err.message.toLowerCase().includes('already registered')) {
+          setError('Este email ya está registrado. Intenta iniciar sesión en lugar de registrarte.');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Error al autenticar. Por favor intenta de nuevo.');
+      }
     } finally {
       setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -281,7 +313,7 @@ export function Auth({ onReaderMode }: AuthProps) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-300 to-violet-300 text-white py-3 rounded-2xl font-medium hover:shadow-lg transform hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-blue-300 to-violet-300 text-white py-3 rounded-2xl font-medium hover:shadow-lg transform hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               'Cargando...'

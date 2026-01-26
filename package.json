@@ -12,6 +12,9 @@
     "start": "npm run dev"
   },
   "dependencies": {
+    "@blocknote/core": "^0.20.0",
+    "@blocknote/react": "^0.20.0",
+    "@blocknote/mantine": "^0.20.0",
     "@supabase/supabase-js": "^2.57.4",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",

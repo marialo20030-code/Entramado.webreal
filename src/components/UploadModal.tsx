@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { extractImageAspectRatio } from '../lib/colorUtils';
 import { extractSpotifyId, extractYouTubeId, getSpotifyThumbnail, getYouTubeThumbnail, getSpotifyTrackInfo } from '../lib/mediaUtils';
-import { RichTextEditor } from './RichTextEditor';
+import { BlockEditor } from './BlockEditor';
 import { ToastContainer } from './Toast';
 
 interface Folder {
@@ -19,6 +19,7 @@ interface UploadModalProps {
   folders: Folder[];
   onSuccess: () => void;
   postToEdit?: any;
+  onFoldersUpdate?: () => void;
 }
 
 export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, onFoldersUpdate }: UploadModalProps) {
@@ -34,7 +35,7 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showRestoredMessage, setShowRestoredMessage] = useState(false);
-  const [showMediaOptions, setShowMediaOptions] = useState(postToEdit?.media_type !== 'image');
+  const [showMediaOptions, setShowMediaOptions] = useState(false); // Siempre empezar sin mostrar opciones avanzadas
   const [referencedPosts, setReferencedPosts] = useState<any[]>([]);
   const [showPostReferences, setShowPostReferences] = useState(false);
   const [postSearchQuery, setPostSearchQuery] = useState('');
@@ -49,10 +50,9 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<{ [key: string]: boolean }>({
-    media: false,
+    media: false, // Multimedia visible por defecto
     references: true,
   });
-  const [showShortcuts, setShowShortcuts] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const STORAGE_KEY = 'draft_post_autosave';
@@ -72,27 +72,20 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
     return text.replace(/<[^>]*>/g, '').length;
   }, []);
 
-  const getReadingTime = useCallback((wordCount: number) => {
-    const wordsPerMinute = 200;
-    const minutes = Math.ceil(wordCount / wordsPerMinute);
-    return minutes;
-  }, []);
 
   const getStatistics = useCallback(() => {
     const titleWords = getWordCount(title);
     const descriptionWords = getWordCount(description);
     const totalWords = titleWords + descriptionWords;
     const totalChars = getCharacterCount(title + description);
-    const readingTime = getReadingTime(totalWords);
     
     return {
       words: totalWords,
       characters: totalChars,
-      readingTime,
       titleWords,
       descriptionWords,
     };
-  }, [title, description, getWordCount, getCharacterCount, getReadingTime]);
+  }, [title, description, getWordCount, getCharacterCount]);
 
   // Función para agregar toasts
   const addToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning') => {
@@ -106,9 +99,8 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
 
   // Función para validar publicación
   const getValidationStatus = useCallback(() => {
-    const stats = getStatistics();
     const hasTitle = title.trim().length > 0;
-    const hasContent = description.trim().length > 0 || stats.descriptionWords > 0;
+    const hasContent = description.trim().length > 0;
     const hasMedia = mediaType === 'image' ? imagePreviews.length > 0 : mediaUrl.trim().length > 0;
     
     return {
@@ -118,7 +110,7 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
       hasMedia,
       warnings: [] as string[],
     };
-  }, [title, description, mediaType, imagePreviews, mediaUrl, getStatistics]);
+  }, [title, description, mediaType, imagePreviews, mediaUrl]);
 
   // Toggle secciones colapsables
   const toggleSection = useCallback((section: string) => {
@@ -381,8 +373,6 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
       setCreatingFolder(false);
     }
   };
-
-  if (!isOpen) return null;
 
   const processFiles = (files: FileList | File[]) => {
     const fileArray = Array.from(files);
@@ -796,10 +786,16 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignorar si está escribiendo en un input o textarea
+      // Ignorar si está escribiendo en un input, textarea o editor de contenido
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        // Permitir Ctrl+S incluso en inputs
+      const isInEditor = target.tagName === 'INPUT' || 
+                        target.tagName === 'TEXTAREA' || 
+                        target.isContentEditable ||
+                        target.closest('textarea') !== null ||
+                        target.closest('[contenteditable="true"]') !== null;
+      
+      if (isInEditor) {
+        // Permitir Ctrl+S incluso en inputs/editors
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
           e.preventDefault();
           if (!loading) {
@@ -807,7 +803,7 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
           }
           return;
         }
-        // Permitir Ctrl+Enter incluso en inputs
+        // Permitir Ctrl+Enter incluso en inputs/editors
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
           e.preventDefault();
           if (!loading && title.trim() && (mediaType === 'image' ? imagePreviews.length > 0 : mediaUrl.trim())) {
@@ -822,6 +818,10 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
             }
           }
           return;
+        }
+        // Permitir Enter normal en el editor (no hacer nada, dejar que funcione normalmente)
+        if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+          return; // No prevenir el comportamiento por defecto del Enter
         }
         return; // No procesar otros atajos si está escribiendo
       }
@@ -865,8 +865,7 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, loading, title, mediaType, imagePreviews, mediaUrl]);
 
-  const stats = getStatistics();
-  const validation = getValidationStatus();
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-[#f5f1e8] z-50 flex flex-col" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,0,0,0.02) 1px, transparent 0)', backgroundSize: '40px 40px' }}>
@@ -890,30 +889,6 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
             )}
           </div>
 
-          {/* Estadísticas */}
-          <div className="hidden md:flex items-center gap-4 ml-4 text-xs text-gray-600">
-            <div className="flex items-center gap-1.5">
-              <FileText size={14} className="text-gray-500" />
-              <span className="font-medium">{stats.words}</span>
-              <span className="text-gray-500">palabras</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-medium">{stats.characters}</span>
-              <span className="text-gray-500">caracteres</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Clock size={14} className="text-gray-500" />
-              <span className="font-medium">{stats.readingTime}</span>
-              <span className="text-gray-500">min</span>
-            </div>
-            {mediaType === 'image' && imagePreviews.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <ImageIcon size={14} className="text-gray-500" />
-                <span className="font-medium">{imagePreviews.length}</span>
-                <span className="text-gray-500">imágenes</span>
-              </div>
-            )}
-          </div>
 
           {/* Indicador de guardado */}
           <div className="hidden md:flex items-center gap-2 ml-auto mr-4">
@@ -939,22 +914,6 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
         </div>
         
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Estado de validación */}
-          {!postToEdit && (
-            <div className="hidden lg:flex items-center gap-2 mr-2">
-              {validation.isValid ? (
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-green-50 border border-green-200 rounded text-xs text-green-700">
-                  <CheckCircle2 size={12} />
-                  <span>Listo para publicar</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700">
-                  <AlertCircle size={12} />
-                  <span>Falta contenido</span>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Botón modo de enfoque */}
           <button
@@ -966,15 +925,6 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
             {isFocusMode ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
           </button>
 
-          {/* Botón atajos */}
-          <button
-            type="button"
-            onClick={() => setShowShortcuts(!showShortcuts)}
-            className="p-2 bg-[#fefcf8] text-gray-700 hover:bg-[#faf8f3] border border-gray-300 rounded-lg transition-all"
-            title="Ver atajos de teclado"
-          >
-            <Keyboard size={18} />
-          </button>
 
           <div className="flex-1 relative max-w-xs">
             <select
@@ -1102,37 +1052,6 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
         </div>
       </div>
 
-      {/* Modal de atajos de teclado */}
-      {showShortcuts && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center" onClick={() => setShowShortcuts(false)}>
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Atajos de teclado</h3>
-              <button onClick={() => setShowShortcuts(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                <span className="text-gray-700">Guardar borrador</span>
-                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Ctrl+S</kbd>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                <span className="text-gray-700">Publicar</span>
-                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Ctrl+Enter</kbd>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                <span className="text-gray-700">Modo de enfoque</span>
-                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Ctrl+K</kbd>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-gray-700">Mostrar/ocultar sidebar</span>
-                <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Ctrl+B</kbd>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Contenido principal */}
       <div className={`flex-1 flex overflow-hidden transition-all duration-300 ${isFocusMode ? 'flex-col' : ''}`}>
@@ -1167,7 +1086,7 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
               }}>
                 {/* Editor de texto enriquecido */}
                 <div className="relative z-10">
-                  <RichTextEditor
+                  <BlockEditor
                     value={description}
                     onChange={setDescription}
                     placeholder="Escribe aquí..."
@@ -1177,6 +1096,32 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
             </div>
           </div>
         </form>
+
+        {/* Botón de Multimedia - Siempre visible para poder expandir/colapsar */}
+        <button
+          type="button"
+          onClick={() => {
+            // Colapsar/expandir todo el sidebar (multimedia + referencias)
+            setSidebarCollapsed(!sidebarCollapsed);
+            // Si se está expandiendo y no hay contenido, mostrar opciones iniciales
+            if (sidebarCollapsed && !imagePreviews.length && !mediaUrl.trim()) {
+              setShowMediaOptions(false);
+            }
+          }}
+          className={`fixed right-4 z-40 p-3 bg-white border border-gray-300 rounded-lg shadow-lg hover:bg-gray-50 transition-all flex items-center gap-2 ${
+            sidebarCollapsed ? 'top-32' : 'top-32'
+          }`}
+          title={sidebarCollapsed ? "Mostrar multimedia y referencias" : "Ocultar multimedia y referencias"}
+        >
+          <ImageIcon size={18} className="text-gray-600" />
+          <span className="text-sm font-medium text-gray-700">Multimedia</span>
+          {!sidebarCollapsed && (imagePreviews.length > 0 || mediaUrl.trim()) && (
+            <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+              {mediaType === 'image' ? imagePreviews.length : 1}
+            </span>
+          )}
+          {sidebarCollapsed ? <ChevronLeft size={18} className="text-gray-600" /> : <ChevronDown size={18} className="text-gray-600" />}
+        </button>
 
         {/* Sidebar derecho - Opciones de multimedia con secciones colapsables */}
         <div className={`bg-[#f5f1e8] border-l border-gray-300 overflow-y-auto flex flex-col shadow-sm transition-all duration-300 ${
@@ -1197,31 +1142,13 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
                 </button>
               </div>
 
-              {/* Sección Multimedia - Colapsable */}
+              {/* Sección Multimedia - Contenido */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => toggleSection('media')}
-                  className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <ImageIcon size={16} className="text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">Multimedia</span>
-                    {imagePreviews.length > 0 || mediaUrl.trim() ? (
-                      <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
-                        {mediaType === 'image' ? imagePreviews.length : 1}
-                      </span>
-                    ) : null}
-                  </div>
-                  {collapsedSections.media ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                </button>
                 
-                {!collapsedSections.media && (
-                  <div className="px-3 pb-3 space-y-3 border-t border-gray-200">
-            
-            {/* Opciones de tipo de contenido */}
-            {!showMediaOptions ? (
-              <div className="space-y-3">
+                <div className="px-3 pb-3 space-y-3 border-t border-gray-200">
+                    {/* Opciones de tipo de contenido */}
+                    {!showMediaOptions ? (
+                      <div className="space-y-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -1258,12 +1185,12 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
                     className="w-full p-3 bg-[#fefcf8] border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-[#faf8f3] transition-all flex items-center gap-2 text-sm shadow-sm"
                   >
                     <Play size={18} className="text-gray-700" />
-                    <span className="text-gray-800">Video (YouTube)</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
+                          <span className="text-gray-800">Video (YouTube)</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-700">
                     {mediaType === 'image' ? 'Imagen' : mediaType === 'spotify' ? 'Spotify' : 'YouTube'}
@@ -1428,25 +1355,25 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
                 {error && (
                   <p className="text-red-500 text-xs">{error}</p>
                 )}
-              </div>
-            )}
                   </div>
                 )}
+                </div>
               </div>
 
-              {/* Sección Referencias - Colapsable */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => {
-                    toggleSection('references');
-                    if (!collapsedSections.references && !showPostReferences) {
-                      setShowPostReferences(true);
-                      loadRecentPosts();
-                    }
-                  }}
-                  className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
-                >
+              <>
+                {/* Sección Referencias - Colapsable */}
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleSection('references');
+                      if (!collapsedSections.references && !showPostReferences) {
+                        setShowPostReferences(true);
+                        loadRecentPosts();
+                      }
+                    }}
+                    className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition-colors"
+                  >
                   <div className="flex items-center gap-2">
                     <Link2 size={16} className="text-gray-600" />
                     <span className="text-sm font-medium text-gray-700">Referencias</span>
@@ -1456,13 +1383,12 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
                       </span>
                     )}
                   </div>
-                  {collapsedSections.references ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                </button>
-                
-                {!collapsedSections.references && (
-                  <div className="px-3 pb-3 space-y-3 border-t border-gray-200">
-
-                    <div className="space-y-2">
+                    {collapsedSections.references ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                  </button>
+                  
+                  {!collapsedSections.references && (
+                    <div className="px-3 pb-3 space-y-3 border-t border-gray-200">
+                      <div className="space-y-2">
                       <div className="relative">
                         <Search size={14} className="absolute left-2 top-2.5 text-gray-400" />
                         <input
@@ -1516,45 +1442,26 @@ export function UploadModal({ isOpen, onClose, folders, onSuccess, postToEdit, o
                           ))}
                         </div>
                       )}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Checklist de validación */}
-              {!postToEdit && (
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
-                  <p className="text-xs font-semibold text-gray-700 mb-2">Estado de publicación</p>
-                  <div className="space-y-1.5">
-                    <div className={`flex items-center gap-2 text-xs ${validation.hasTitle ? 'text-green-600' : 'text-gray-400'}`}>
-                      {validation.hasTitle ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                      <span>Título requerido</span>
-                    </div>
-                    <div className={`flex items-center gap-2 text-xs ${validation.hasMedia ? 'text-green-600' : 'text-gray-400'}`}>
-                      {validation.hasMedia ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                      <span>Multimedia requerido</span>
-                    </div>
-                    <div className={`flex items-center gap-2 text-xs ${validation.hasContent ? 'text-green-600' : 'text-amber-600'}`}>
-                      {validation.hasContent ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                      <span>Contenido (recomendado)</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </>
             </div>
-          )}
-          {sidebarCollapsed && (
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(false)}
-              className="fixed right-4 top-1/2 transform -translate-y-1/2 p-2 bg-white border border-gray-300 rounded-l-lg shadow-lg hover:bg-gray-50 transition-colors z-30"
-              title="Mostrar sidebar (Ctrl+B)"
-            >
-              <ChevronRight size={18} className="text-gray-600" />
-            </button>
           )}
         </div>
       </div>
+      {sidebarCollapsed && (
+        <button
+          type="button"
+          onClick={() => setSidebarCollapsed(false)}
+          className="fixed right-4 top-1/2 transform -translate-y-1/2 p-2 bg-white border border-gray-300 rounded-l-lg shadow-lg hover:bg-gray-50 transition-colors z-30"
+          title="Mostrar sidebar (Ctrl+B)"
+        >
+          <ChevronRight size={18} className="text-gray-600" />
+        </button>
+      )}
 
       {/* Toast Container */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />

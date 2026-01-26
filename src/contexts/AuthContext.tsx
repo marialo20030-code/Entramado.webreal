@@ -22,22 +22,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     console.log('🔐 Inicializando autenticación...');
     
+
     const initAuth = async () => {
       try {
         console.log('🔑 Obteniendo sesión de Supabase...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('❌ Error getting session:', error);
-        } else {
-          console.log('✅ Sesión obtenida:', session ? 'Usuario autenticado' : 'Sin sesión');
-        }
-        if (mounted) {
-          setUser(session?.user ?? null);
-          setLoading(false);
-          console.log('✅ AuthContext inicializado');
+        
+        // Limpiar sesión almacenada si hay errores de conexión previos
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error('❌ Error getting session:', error);
+            console.error('❌ Detalles del error:', {
+              message: error.message,
+              status: error.status,
+              name: error.name
+            });
+            // Si hay error de conexión, limpiar sesión almacenada
+            if (error.message.includes('Failed to fetch') || error.message.includes('ERR_NAME_NOT_RESOLVED')) {
+              console.warn('⚠️ Limpiando sesión almacenada debido a error de conexión');
+              await supabase.auth.signOut();
+            }
+          } else {
+            console.log('✅ Sesión obtenida:', session ? 'Usuario autenticado' : 'Sin sesión');
+          }
+          if (mounted) {
+            setUser(session?.user ?? null);
+            setLoading(false);
+            console.log('✅ AuthContext inicializado');
+          }
+        } catch (fetchError) {
+          // Error de red/conexión
+          if (fetchError instanceof Error && 
+              (fetchError.message.includes('Failed to fetch') || 
+               fetchError.message.includes('ERR_NAME_NOT_RESOLVED'))) {
+            console.error('❌ ERROR: No se puede conectar a Supabase');
+            console.error('❌ El proyecto de Supabase no existe o está pausado');
+            console.error('❌ Ve a https://supabase.com y verifica tu proyecto');
+            console.error('❌ O crea un nuevo proyecto y actualiza las credenciales en .env');
+            // Limpiar sesión almacenada
+            try {
+              await supabase.auth.signOut();
+            } catch (e) {
+              // Ignorar errores al limpiar
+            }
+          }
+          throw fetchError;
         }
       } catch (error) {
         console.error('❌ Error initializing auth:', error);
+        if (error instanceof Error) {
+          console.error('❌ Error details:', {
+            message: error.message,
+            stack: error.stack
+          });
+        }
         if (mounted) {
           setLoading(false);
         }
@@ -62,8 +100,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    console.log('🔐 Intentando iniciar sesión con:', email);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      console.error('❌ Error al iniciar sesión:', error);
+      console.error('❌ Detalles:', {
+        message: error.message,
+        status: error.status,
+        name: error.name
+      });
+      throw error;
+    }
+    console.log('✅ Inicio de sesión exitoso', data?.user?.email);
   };
 
   const signUp = async (email: string, password: string) => {

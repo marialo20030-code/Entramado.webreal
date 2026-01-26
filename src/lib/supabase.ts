@@ -6,7 +6,22 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIU
 console.log('🔧 Configurando Supabase:', {
   hasUrl: !!import.meta.env.VITE_SUPABASE_URL,
   hasKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-  urlPreview: supabaseUrl.substring(0, 30) + '...'
+  urlPreview: supabaseUrl.substring(0, 50) + '...',
+  url: supabaseUrl,
+  keyPreview: supabaseAnonKey.substring(0, 30) + '...'
 });
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Validar que las credenciales no sean placeholders
+if (supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder')) {
+  console.error('❌ ERROR: Las credenciales de Supabase son placeholders. Verifica tu archivo .env');
+  console.error('❌ Necesitas configurar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY');
+}
+
+// Configuración con manejo mejorado de errores de conexión
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: false, // Desactivado para evitar loops cuando el proyecto no existe
+    detectSessionInUrl: true,
+  },
+});

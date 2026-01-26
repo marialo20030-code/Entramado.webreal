@@ -612,3 +612,14 @@ Cuando me preguntes sobre esta funcionalidad, ten en cuenta:
 
 Este es el sistema completo. Entiéndelo a fondo antes de responder cualquier pregunta sobre él.
 
+
+
+
+
+
+
+
+
+
+
+
